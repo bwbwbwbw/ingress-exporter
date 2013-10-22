@@ -13,7 +13,7 @@ Node.js, MongoDB
 
 ### Usage
 
-```javascript
+```bash
 npm install
 node app.js
 ```
