@@ -389,5 +389,3 @@ delayAndExecute = (delayerId, delay, callback) ->
         callback()
         @[delayerId] = null
     , delay
-
-###
