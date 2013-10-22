@@ -1,0 +1,13 @@
+{
+    "name": "ingress-portals-exporter",
+    "version": "0.0.1",
+    "dependencies": {
+        "request": "*",
+        "colors": "*",
+        "coffee-script": "*",
+        "mongoskin": "*",
+        "moment": "*",
+        "consoler": "*",
+        "optimist": "*"
+    }
+}
