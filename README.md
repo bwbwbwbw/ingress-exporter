@@ -1,27 +1,37 @@
-ingress-portals-exporter
+ingress-exporter
 ========================
 
-Export all portals (with links, fields) in a specific geo-region.
-
-Lovingly made for Shanghai Enlightened.
-
----
-
-### Requirement
-
-Node.js, MongoDB
-
-### Usage
+Export all portals, links, fields and system broadcasts in a specific geo-region.
 
 ```bash
 npm install
 node app.js
 ```
 
-### Warning
+# Requirement
 
-Use this script under your own risk!
+Node.js > 0.10
 
-### License
+MongoDB > 2.2
+
+# Usage
+
+### Continue the last task (default):
+
+```bash
+node app.js
+```
+
+### Start a new task:
+
+```bash
+node app.js --new
+```
+
+# Warning
+
+Using this script is likely to be considered against the Ingress Terms of Service. Any use is at your own risk.
+
+# License
 
 The MIT License
