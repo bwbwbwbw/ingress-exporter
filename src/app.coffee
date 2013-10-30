@@ -16,14 +16,14 @@ noop = GLOBAL.noop = ->
 
 #######################
 
-require './config.coffee'
+require './config.js'
 
 require './lib/leaflet.js'
 require './lib/utils.js'
-require './lib/database.coffee'
-require './lib/request.coffee'
-require './lib/tile.coffee'
-require './lib/entity.coffee'
+require './lib/database.js'
+require './lib/request.js'
+require './lib/tile.js'
+require './lib/entity.js'
 
 #######################
 # bootstrap

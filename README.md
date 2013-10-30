@@ -5,7 +5,7 @@ Export all portals, links, fields and system broadcasts in a specific geo-region
 
 ```bash
 npm install
-node app.js
+node build/app.js
 ```
 
 # Requirement
@@ -19,13 +19,13 @@ MongoDB > 2.2
 ### Continue the last task (default):
 
 ```bash
-node app.js
+node build/app.js
 ```
 
 ### Start a new task:
 
 ```bash
-node app.js --new
+node build/app.js --new
 ```
 
 # Warning

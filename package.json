@@ -1,9 +1,16 @@
 {
     "name": "ingress-exporter",
     "version": "0.0.1",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/breeswish/ingress-exporter.git"
+    },
     "dependencies": {
+        "grunt": "*",
+        "grunt-contrib-coffee": "*",
+        "grunt-contrib-watch": "*",
+        "grunt-contrib-copy": "*",
         "request": "*",
-        "coffee-script": "*",
         "mongoskin": "*",
         "moment": "*",
         "winston": "*",
