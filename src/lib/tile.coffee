@@ -20,7 +20,7 @@ TileBucket = GLOBAL.TileBucket =
 
         TileBucket.bucket.push tileId if tileId?
         
-        if TileBucket.bucket.length >= Config.TileBucket.Max
+        if TileBucket.bucket.length >= Config.TileBucket.Max or not tileId?
 
             TileBucket.request TileBucket.bucket, callback
             TileBucket.bucket = []
@@ -45,7 +45,7 @@ TileBucket = GLOBAL.TileBucket =
                 TileBucket.requestCount++
                 requestId = TileBucket.requestCount
 
-                data = boundsParamsList: boundsParamsList
+                data = quadKeys: boundsParamsList
 
                 Request.add
 
@@ -57,7 +57,7 @@ TileBucket = GLOBAL.TileBucket =
 
                     onError: (err) ->
 
-                        logger.error "[Request] ErrorCode=#{err.code}"
+                        logger.error "[Request] " + err
                         processErrorTileResponse tileIds
 
                     afterResponse: ->
@@ -85,7 +85,7 @@ TileBucket = GLOBAL.TileBucket =
 
             if Tile.data[tileId].status isnt STATUS_COMPLETE
                 
-                boundsParamsList.push Tile.bounds[tileId]
+                boundsParamsList.push Tile.bounds[tileId].id
                 Tile.data[tileId].status = STATUS_PENDING
 
                 Database.db.collection('Tiles').update
@@ -131,14 +131,8 @@ Tile = GLOBAL.Tile =
         for y in [y1 .. y2]
             for x in [x1 .. x2]
 
-                tileId   = Utils.pointToTileId Config.MinPortalLevel, x, y
-                latNorth = Utils.tileToLat y,   Config.MinPortalLevel
-                latSouth = Utils.tileToLat y+1, Config.MinPortalLevel
-                lngWest  = Utils.tileToLng x,   Config.MinPortalLevel
-                lngEast  = Utils.tileToLng x+1, Config.MinPortalLevel
-
-                boundsParams = Utils.generateBoundsParams tileId, latSouth, lngWest, latNorth, lngEast
-                tileBounds.push boundsParams
+                tileId = Utils.pointToTileId Config.MinPortalLevel, x, y
+                tileBounds.push id: tileId
 
         return tileBounds
 
@@ -203,7 +197,7 @@ Tile = GLOBAL.Tile =
 
     _prepareTiles: (callback) ->
 
-        logger.success "[Tile] Prepared #{Tile.length} tiles"
+        logger.info "[Tile] Prepared #{Tile.length} tiles"
         
         Database.db.collection('Tiles').ensureIndex [['status', 1]], false, ->
 

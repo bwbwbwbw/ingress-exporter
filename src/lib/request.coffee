@@ -1,7 +1,4 @@
-r = require 'request'
-zlib = require 'zlib'
-jar = r.jar()
-req = r.defaults jar:jar
+needle = require 'needle'
 
 # Request pools
 pool = []
@@ -11,18 +8,15 @@ reqCount = 0
 cookies = {}
 
 for v in Config.Auth.CookieRaw.split(';')
-
-    v = v.trim()
-
-    C = v.split '='
+    C = v.trim().split '='
     cookies[C[0]] = unescape C[1]
-    jar.add r.cookie(v)
 
 Request = GLOBAL.Request = 
     
     add: (options) ->
 
         activeMunge = Config.Munges.Data[Config.Munges.ActiveSet]
+
         methodName = 'dashboard.' + options.action
         versionStr = 'version_parameter'
 
@@ -55,60 +49,27 @@ sendRequest = ->
     v = pool.shift()
     reqCount++
 
-    buffer = []
-    bodyLen = 0
-
-    v.request || v.request()
-
-    req
-        url:      'http://www.ingress.com/r/' + v.m
-        method:   'POST'
-        body:     JSON.stringify v.d
-        encoding: null
+    needle.post 'http://www.ingress.com/r/' + v.m, JSON.stringify(v.d),
+        compressed: true
         headers:
             # user-agent is essential for GZIP response here
             'Accept': 'application/json, text/javascript, */*; q=0.01'
-            'Accept-Encoding': 'gzip,deflate'
-            'Accept-Language': 'zh-CN,zh;q=0.8'
             'Content-type': 'application/json; charset=utf-8'
+            'Cookie': Config.Auth.CookieRaw
             'Host': 'www.ingress.com'
             'Origin': 'http://www.ingress.com'
             'Referer': 'http://www.ingress.com/intel'
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
             'X-CSRFToken': cookies.csrftoken
-    .on 'error', (err) ->
-        # may produce multiple errors here
-        return if v.errorEmited?
-
-        reqCount--
-        Request.requested++
-        v.errorEmited = true
-        v.error && v.error err
-        v.response && v.response err
-    .pipe zlib.createGunzip()
-    .on 'error', (err) ->
-        return if v.errorEmited?
-
-        reqCount--
-        Request.requested++
-        v.errorEmited = true
-        v.error && v.error err
-        v.response && v.response err
-    .on 'data', (chunk) ->
-        buffer.push chunk
-        bodyLen += chunk.length
-    .on 'end', ->
+    , (error, response, body) ->
 
         reqCount--
         Request.requested++
 
-        body = new Buffer bodyLen
-        i = 0
-        for chunk in buffer
-            chunk.copy body, i, 0, chunk.length
-            i += chunk.length
-
-        body = body.toString()
+        if error
+            v.error && v.error error
+            v.response && v.response error
+            return
 
         # not authorized
         if body is 'User not authenticated'
@@ -116,15 +77,7 @@ sendRequest = ->
             process.exit 0
             return
 
-        try
-            body = JSON.parse body
-        catch err
-            return if v.errorEmited?
-            v.errorEmited = true
-            v.error && v.error err
-            v.response && v.response err
-            return
-
+        
         v.success && v.success body
         v.response && v.response null
 

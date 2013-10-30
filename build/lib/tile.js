@@ -28,7 +28,7 @@
       if (tileId != null) {
         TileBucket.bucket.push(tileId);
       }
-      if (TileBucket.bucket.length >= Config.TileBucket.Max) {
+      if (TileBucket.bucket.length >= Config.TileBucket.Max || (tileId == null)) {
         TileBucket.request(TileBucket.bucket, callback);
         return TileBucket.bucket = [];
       } else {
@@ -46,7 +46,7 @@
           TileBucket.requestCount++;
           requestId = TileBucket.requestCount;
           data = {
-            boundsParamsList: boundsParamsList
+            quadKeys: boundsParamsList
           };
           Request.add({
             action: 'getThinnedEntitiesV4',
@@ -55,7 +55,7 @@
               return processSuccessTileResponse(response, tileIds);
             },
             onError: function(err) {
-              logger.error("[Request] ErrorCode=" + err.code);
+              logger.error("[Request] " + err);
               return processErrorTileResponse(tileIds);
             },
             afterResponse: function() {
@@ -77,7 +77,7 @@
         }
         tileId = tileIds[completedQueries];
         if (Tile.data[tileId].status !== STATUS_COMPLETE) {
-          boundsParamsList.push(Tile.bounds[tileId]);
+          boundsParamsList.push(Tile.bounds[tileId].id);
           Tile.data[tileId].status = STATUS_PENDING;
           return Database.db.collection('Tiles').update({
             _id: tileId
@@ -105,7 +105,7 @@
     bounds: {},
     data: {},
     calculateBounds: function() {
-      var bounds, boundsParams, latNorth, latSouth, lngEast, lngWest, tileBounds, tileId, x, x1, x2, y, y1, y2, _i, _j;
+      var bounds, tileBounds, tileId, x, x1, x2, y, y1, y2, _i, _j;
       bounds = Utils.clampLatLngBounds(new L.LatLngBounds(new L.LatLng(Config.Region.SouthWest.Lat, Config.Region.SouthWest.Lng), new L.LatLng(Config.Region.NorthEast.Lat, Config.Region.NorthEast.Lng)));
       x1 = Utils.lngToTile(bounds.getWest(), Config.MinPortalLevel);
       x2 = Utils.lngToTile(bounds.getEast(), Config.MinPortalLevel);
@@ -115,12 +115,9 @@
       for (y = _i = y1; y1 <= y2 ? _i <= y2 : _i >= y2; y = y1 <= y2 ? ++_i : --_i) {
         for (x = _j = x1; x1 <= x2 ? _j <= x2 : _j >= x2; x = x1 <= x2 ? ++_j : --_j) {
           tileId = Utils.pointToTileId(Config.MinPortalLevel, x, y);
-          latNorth = Utils.tileToLat(y, Config.MinPortalLevel);
-          latSouth = Utils.tileToLat(y + 1, Config.MinPortalLevel);
-          lngWest = Utils.tileToLng(x, Config.MinPortalLevel);
-          lngEast = Utils.tileToLng(x + 1, Config.MinPortalLevel);
-          boundsParams = Utils.generateBoundsParams(tileId, latSouth, lngWest, latNorth, lngEast);
-          tileBounds.push(boundsParams);
+          tileBounds.push({
+            id: tileId
+          });
         }
       }
       return tileBounds;
@@ -176,7 +173,7 @@
       return Tile._prepareTiles(callback);
     },
     _prepareTiles: function(callback) {
-      logger.success("[Tile] Prepared " + Tile.length + " tiles");
+      logger.info("[Tile] Prepared " + Tile.length + " tiles");
       return Database.db.collection('Tiles').ensureIndex([['status', 1]], false, function() {
         var bounds, tileId, _ref;
         _ref = Tile.bounds;

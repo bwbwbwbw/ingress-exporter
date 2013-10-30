@@ -10,7 +10,7 @@
         "grunt-contrib-coffee": "*",
         "grunt-contrib-watch": "*",
         "grunt-contrib-copy": "*",
-        "request": "*",
+        "needle": "*",
         "mongoskin": "*",
         "moment": "*",
         "winston": "*",

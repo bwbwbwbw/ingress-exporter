@@ -16,3 +16,4 @@ node_modules
 
 /ingress-exporter.log
 /config.coffee
+/build/config.js
