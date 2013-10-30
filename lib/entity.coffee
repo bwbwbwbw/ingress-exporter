@@ -28,7 +28,7 @@ Entity = GLOBAL.Entity =
         else if data.edge?
             createLinkEntity.apply this, arguments
         else
-            consoler.warn 'Unknown entity type, id=' + id
+            logger.warn 'Unknown entity type, id=' + id
 
 createEntity = (collection, id, timestamp, data) ->
 

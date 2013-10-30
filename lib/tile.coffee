@@ -57,12 +57,12 @@ TileBucket = GLOBAL.TileBucket =
 
                     onError: (err) ->
 
-                        consoler.error "[Request] ErrorCode=#{err.code}"
+                        logger.error "[Request] ErrorCode=#{err.code}"
                         processErrorTileResponse tileIds
 
                     afterResponse: ->
 
-                        consoler.log "[Request] " +
+                        logger.info "[Request] " +
                             Math.round(Request.requested / Request.maxRequest * 100).toString() +
                             "% [#{Request.requested}/#{Request.maxRequest}]" +
                             " timeout=#{timeoutTiles.length}, fail=#{failTiles.length}, panic=#{panicTiles.length} | #{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
@@ -82,10 +82,6 @@ TileBucket = GLOBAL.TileBucket =
                 return
 
             tileId = tileIds[completedQueries]
-
-            if not Tile.data[tileId]?
-                console.log tileId, tileIds, completedQueries
-                return
 
             if Tile.data[tileId].status isnt STATUS_COMPLETE
                 
@@ -148,7 +144,7 @@ Tile = GLOBAL.Tile =
 
     prepareFromDatabase: (callback) ->
 
-        consoler.log "[Tile] Preparing from database: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
+        logger.info "[Tile] Preparing from database: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
         
         # get all tiles
         tileBounds = Tile.calculateBounds()
@@ -190,12 +186,12 @@ Tile = GLOBAL.Tile =
                 
                 next()
               
-        consoler.log "[Tile] Querying #{expectedQueries} tile status..."
+        logger.info "[Tile] Querying #{expectedQueries} tile status..."
         next()
 
     prepareNew: (callback) ->
 
-        consoler.log "[Tile] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
+        logger.info "[Tile] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
         
         tileBounds = Tile.calculateBounds()
         for bounds in tileBounds
@@ -207,7 +203,7 @@ Tile = GLOBAL.Tile =
 
     _prepareTiles: (callback) ->
 
-        consoler.success "[Tile] Prepared #{Tile.length} tiles"
+        logger.success "[Tile] Prepared #{Tile.length} tiles"
         
         Database.db.collection('Tiles').ensureIndex [['status', 1]], false, ->
 
@@ -222,7 +218,7 @@ Tile = GLOBAL.Tile =
 
     start: ->
 
-        consoler.log "[Tile] Begin requesting..."
+        logger.info "[Tile] Begin requesting..."
 
         req = []
         req.push tileId for tileId, tileBounds of Tile.bounds
@@ -275,7 +271,7 @@ processSuccessTileResponse = (response, tileIds) ->
 
                 if tileData[tileId].fails > Config.Tiles.MaxFailRetry
                     
-                    consoler.error "PANIC: tile id=#{tileId}"
+                    logger.error "PANIC: tile id=#{tileId}"
                     Tile.data[tileId].status = STATUS_PANIC  # no more try
                     panicTiles.push tileId
                 
@@ -315,7 +311,7 @@ processErrorTileResponse = (tileIds) ->
 
             if Tile.data[tileId].errors > Config.Tile.MaxErrorRetry
             
-                consoler.error "PANIC: tile id=#{tileId}"
+                logger.error "PANIC: tile id=#{tileId}"
                 Tile.data[tileId].status = STATUS_PANIC
                 panicTiles.push tileId
 

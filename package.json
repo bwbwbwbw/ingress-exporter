@@ -3,11 +3,10 @@
     "version": "0.0.1",
     "dependencies": {
         "request": "*",
-        "colors": "*",
         "coffee-script": "*",
         "mongoskin": "*",
         "moment": "*",
-        "consoler": "*",
+        "winston": "*",
         "optimist": "*"
     }
 }

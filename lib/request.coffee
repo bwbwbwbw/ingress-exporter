@@ -112,7 +112,7 @@ sendRequest = ->
 
         # not authorized
         if body is 'User not authenticated'
-            consoler.error '[Auth] Authorize failed. Please update the cookie.'
+            logger.error '[Auth] Authorize failed. Please update the cookie.'
             process.exit 0
             return
 
