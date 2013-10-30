@@ -76,7 +76,6 @@ sendRequest = ->
             logger.error '[Auth] Authorize failed. Please update the cookie.'
             process.exit 0
             return
-
         
         v.success && v.success body
         v.response && v.response null
