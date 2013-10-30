@@ -16,10 +16,7 @@ require './lib/request.coffee'
 require './lib/tile.coffee'
 require './lib/entity.coffee'
 
-onPrepareComplete = ->
-    Tile.start()
-
-if argv.new?
-    Tile.prepareNew onPrepareComplete
+if argv.new or argv.n
+    Tile.prepareNew Tile.start
 else
-    Tile.prepareFromDatabase onPrepareComplete
+    Tile.prepareFromDatabase Tile.start
