@@ -104,9 +104,7 @@ Request.queue = async.queue (task, callback) ->
 , Config.Request.MaxParallel
 
 # all requests have done
-Request.queue.drain = ->
-    logger.info '[DONE]'
-    process.exit 0
+Request.queue.drain = exitProcess
 
 Request.maxRequest = 0
 Request.requested = 0

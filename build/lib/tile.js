@@ -62,12 +62,12 @@
           return processSuccessTileResponse(response, tileIds);
         },
         onError: function(err) {
-          logger.error("[Tile Request] " + err);
+          logger.error("[Portals] " + err);
           return processErrorTileResponse(tileIds, noop);
         },
         afterResponse: function() {
           checkTimeoutAndFailTiles();
-          return logger.info("[Tile Request] " + Math.round(Request.requested / Request.maxRequest * 100).toString() + ("%\t[" + Request.requested + "/" + Request.maxRequest + "]") + ("\t" + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
+          return logger.info("[Portals] " + Math.round(Request.requested / Request.maxRequest * 100).toString() + ("%\t[" + Request.requested + "/" + Request.maxRequest + "]") + ("\t" + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
         },
         beforeRequest: function() {
           return null;
@@ -115,10 +115,10 @@
     },
     prepareFromDatabase: function(callback) {
       var completedBounds, tileBounds;
-      logger.info("[Tile] Preparing from database: [" + Config.Region.SouthWest.Lat + "," + Config.Region.SouthWest.Lng + "]-[" + Config.Region.NorthEast.Lat + "," + Config.Region.NorthEast.Lng + "], MinPortalLevel=" + Config.MinPortalLevel);
+      logger.info("[Portals] Preparing from database: [" + Config.Region.SouthWest.Lat + "," + Config.Region.SouthWest.Lng + "]-[" + Config.Region.NorthEast.Lat + "," + Config.Region.NorthEast.Lng + "], MinPortalLevel=" + Config.MinPortalLevel);
       tileBounds = Tile.calculateBounds();
       completedBounds = {};
-      logger.info("[Tile] Querying " + tileBounds.length + " tile status...");
+      logger.info("[Portals] Querying " + tileBounds.length + " tile status...");
       return async.eachLimit(tileBounds, Config.Database.MaxParallel, function(bound, callback) {
         return Database.db.collection('Tiles').findOne({
           _id: bound.id,
@@ -143,7 +143,7 @@
     },
     prepareNew: function(callback) {
       var bounds, tileBounds, _i, _len;
-      logger.info("[Tile] Preparing new: [" + Config.Region.SouthWest.Lat + "," + Config.Region.SouthWest.Lng + "]-[" + Config.Region.NorthEast.Lat + "," + Config.Region.NorthEast.Lng + "], MinPortalLevel=" + Config.MinPortalLevel);
+      logger.info("[Portals] Preparing new: [" + Config.Region.SouthWest.Lat + "," + Config.Region.SouthWest.Lng + "]-[" + Config.Region.NorthEast.Lat + "," + Config.Region.NorthEast.Lng + "], MinPortalLevel=" + Config.MinPortalLevel);
       tileBounds = Tile.calculateBounds();
       for (_i = 0, _len = tileBounds.length; _i < _len; _i++) {
         bounds = tileBounds[_i];
@@ -153,7 +153,7 @@
       return Tile._prepareTiles(callback);
     },
     _prepareTiles: function(callback) {
-      logger.info("[Tile] Prepared " + Tile.length + " tiles");
+      logger.info("[Portals] Prepared " + Tile.length + " tiles");
       return Database.db.collection('Tiles').ensureIndex([['status', 1]], false, function() {
         var bounds, tileId, _ref;
         _ref = Tile.bounds;
@@ -171,10 +171,13 @@
     start: function() {
       var req, tileBounds, tileId, _ref;
       if (Tile.length === 0) {
-        logger.info("[Tile] Nothing to request.");
+        logger.info("[Portals] Nothing to request");
+        if (Request.queue.length() === 0) {
+          exitProcess();
+        }
         return;
       }
-      logger.info("[Tile] Begin requesting...");
+      logger.info("[Portals] Begin requesting...");
       req = [];
       _ref = Tile.bounds;
       for (tileId in _ref) {

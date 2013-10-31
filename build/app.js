@@ -1,5 +1,5 @@
 (function() {
-  var argv, logger, noop;
+  var argv, exitProcess, logger, noop;
 
   logger = GLOBAL.logger = require('winston');
 
@@ -18,6 +18,11 @@
 
   noop = GLOBAL.noop = function() {
     return null;
+  };
+
+  exitProcess = GLOBAL.exitProcess = function() {
+    logger.info('[DONE]');
+    return process.exit(0);
   };
 
   require('./config.js');

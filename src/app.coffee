@@ -14,6 +14,10 @@ logger.add logger.transports.File,
 noop = GLOBAL.noop = ->
     null
 
+exitProcess = GLOBAL.exitProcess = ->
+    logger.info '[DONE]'
+    process.exit 0
+
 #######################
 
 require './config.js'

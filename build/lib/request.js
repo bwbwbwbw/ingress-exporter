@@ -100,10 +100,7 @@
     }
   }, Config.Request.MaxParallel);
 
-  Request.queue.drain = function() {
-    logger.info('[DONE]');
-    return process.exit(0);
-  };
+  Request.queue.drain = exitProcess;
 
   Request.maxRequest = 0;
 
