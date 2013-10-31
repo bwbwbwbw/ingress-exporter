@@ -11,6 +11,7 @@
         "grunt-contrib-watch": "*",
         "grunt-contrib-copy": "*",
         "needle": "*",
+        "async": "*",
         "mongoskin": "*",
         "moment": "*",
         "winston": "*",

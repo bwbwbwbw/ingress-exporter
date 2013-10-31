@@ -1,11 +1,9 @@
 (function() {
-  var C, Request, cookies, needle, pool, reqCount, sendRequest, v, _i, _len, _ref;
+  var C, Request, cookies, needle, pool, sendRequest, v, _i, _len, _ref;
 
   needle = require('needle');
 
   pool = [];
-
-  reqCount = 0;
 
   cookies = {};
 
@@ -37,7 +35,7 @@
         response: options.afterResponse
       });
       Request.maxRequest++;
-      if (reqCount < Config.Request.MaxParallel) {
+      if (Request.activeRequests < Config.Request.MaxParallel) {
         return sendRequest();
       }
     }
@@ -49,12 +47,14 @@
 
   Request.requested = 0;
 
+  Request.activeRequests = 0;
+
   sendRequest = function() {
     if (pool.length === 0) {
       return;
     }
     v = pool.shift();
-    reqCount++;
+    Request.activeRequests++;
     return needle.post('http://www.ingress.com/r/' + v.m, JSON.stringify(v.d), {
       compressed: true,
       headers: {
@@ -69,7 +69,12 @@
       }
     }, function(error, response, body) {
       var i, _j, _ref1, _results;
-      reqCount--;
+      if (v.emitted != null) {
+        console.log('ignore re-emitted event', error, body);
+        return;
+      }
+      v.emitted = true;
+      Request.activeRequests--;
       Request.requested++;
       if (error) {
         v.error && v.error(error);
@@ -84,7 +89,7 @@
       v.success && v.success(body);
       v.response && v.response(null);
       _results = [];
-      for (i = _j = 1, _ref1 = Math.min(pool.length, Config.Request.MaxParallel - reqCount); 1 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 1 <= _ref1 ? ++_j : --_j) {
+      for (i = _j = 1, _ref1 = Math.min(pool.length, Config.Request.MaxParallel - Request.activeRequests); 1 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 1 <= _ref1 ? ++_j : --_j) {
         _results.push(sendRequest());
       }
       return _results;

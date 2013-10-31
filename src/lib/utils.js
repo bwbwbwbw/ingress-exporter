@@ -7,7 +7,39 @@ var Utils = GLOBAL.Utils = {
 
     requestDataMunge: function(data) {
         var activeMunge = Config.Munges.Data[Config.Munges.ActiveSet];
-        return activeMunge;
+
+        function munge(obj) {
+
+            if (Object.prototype.toString.call(obj) === '[object Array]') {
+                // an array - munge each element of it
+                var newobj = [];
+                for (var i in obj) {
+                    newobj[i] = munge(obj[i]);
+                }
+                return newobj;
+            } else if (typeof obj === 'object') {
+                // an object: munge each property name, and pass the value through the munge process
+                var newobj = Object();
+                for (var p in obj) {
+                    var m = activeMunge[p];
+                    if (m === undefined) {
+                        console.error(('Error: failed to find munge for object property ' + p).red);
+                        newobj[p] = obj[p];
+                    } else {
+                        // rename the property
+                        newobj[m] = munge(obj[p]);
+                    }
+                }
+                return newobj;
+            } else {
+                // neither an array or an object - so must be a simple value. return it unmodified
+                return obj;
+            }
+
+        };
+
+        var newdata = munge(data);
+        return newdata;
     },
 
     //$.extend

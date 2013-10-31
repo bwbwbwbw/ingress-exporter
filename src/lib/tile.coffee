@@ -1,3 +1,5 @@
+async = require 'async'
+
 timeoutTiles = []
 failTiles    = []
 panicTiles   = []
@@ -31,21 +33,34 @@ TileBucket = GLOBAL.TileBucket =
 
     request: (tileIds, callback) ->
 
-        boundsParamsList = []
+        tileList = []
+
+        for tileId in tileIds
+            if Tile.data[tileId].status isnt STATUS_COMPLETE
+                tileList.push Tile.bounds[tileId].id
+                Tile.data[tileId].status = STATUS_PENDING
 
         # reset status in database
+        async.eachLimit tileList, Config.Database.MaxParallel, (tileId, callback) ->
+            Database.db.collection('Tiles').update
+                _id:    tileId
+            ,
+                $set:
+                    status: STATUS_PENDING
+            ,
+                upsert: true
+            , callback
+        , (err) ->
+            # TODO: handle error
 
-        completedQueries = 0
-        expectedQueries = tileIds.length
-        
-        onAllQueriesComplete = ->
+            # onFinish
 
-            if boundsParamsList.length isnt 0
+            if tileList.length isnt 0
 
                 TileBucket.requestCount++
                 requestId = TileBucket.requestCount
 
-                data = quadKeys: boundsParamsList
+                data = quadKeys: tileList
 
                 Request.add
 
@@ -58,7 +73,7 @@ TileBucket = GLOBAL.TileBucket =
                     onError: (err) ->
 
                         logger.error "[Request] " + err
-                        processErrorTileResponse tileIds
+                        processErrorTileResponse tileIds, noop
 
                     afterResponse: ->
 
@@ -75,37 +90,6 @@ TileBucket = GLOBAL.TileBucket =
 
             callback && callback()
 
-        next = ->
-
-            if completedQueries is expectedQueries
-                onAllQueriesComplete()
-                return
-
-            tileId = tileIds[completedQueries]
-
-            if Tile.data[tileId].status isnt STATUS_COMPLETE
-                
-                boundsParamsList.push Tile.bounds[tileId].id
-                Tile.data[tileId].status = STATUS_PENDING
-
-                Database.db.collection('Tiles').update
-                    _id:    tileId
-                ,
-                    $set:
-                        status: STATUS_PENDING
-                ,
-                    upsert: true
-                , ->
-
-                    completedQueries++
-                    next()
-
-            else
-
-                completedQueries++
-                next()
-
-        next()
 
 Tile = GLOBAL.Tile = 
     
@@ -139,15 +123,24 @@ Tile = GLOBAL.Tile =
     prepareFromDatabase: (callback) ->
 
         logger.info "[Tile] Preparing from database: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
-        
+
         # get all tiles
         tileBounds = Tile.calculateBounds()
-
-        completedQueries = 0
-        expectedQueries = tileBounds.length
         completedBounds = {}
-        
-        onAllQueriesComplete = ->
+
+        logger.info "[Tile] Querying #{tileBounds.length} tile status..."
+
+        async.eachLimit tileBounds, Config.Database.MaxParallel, (bound, callback) ->
+            # find this tile in the database
+            Database.db.collection('Tiles').findOne
+                _id:    bound.id
+                status: STATUS_COMPLETE
+            , (err, tile) ->
+                # tile exists: it is downloaded, ignore.
+                completedBounds[tile._id] = true if tile?                 
+                callback err
+        , (err) ->
+            # TODO: handle error
 
             # which tile is not downloaded
             for bounds in tileBounds
@@ -157,39 +150,12 @@ Tile = GLOBAL.Tile =
 
             Tile._prepareTiles callback
 
-        next = ->
-
-            if completedQueries is expectedQueries
-                onAllQueriesComplete()
-                return
-
-            bound = tileBounds[completedQueries]
-
-            # find this tile in the database
-            Database.db.collection('Tiles').findOne
-
-                _id:    bound.id
-                status: STATUS_COMPLETE
-
-            , (err, tile) ->
-                
-                completedQueries++
-
-                # tile exists: it is downloaded, ignore.
-                completedBounds[tile._id] = true if tile? 
-                
-                next()
-              
-        logger.info "[Tile] Querying #{expectedQueries} tile status..."
-        next()
-
     prepareNew: (callback) ->
 
         logger.info "[Tile] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
         
         tileBounds = Tile.calculateBounds()
         for bounds in tileBounds
-
             Tile.length++
             Tile.bounds[bounds.id] = bounds
 
@@ -214,34 +180,20 @@ Tile = GLOBAL.Tile =
 
         logger.info "[Tile] Begin requesting..."
 
+        # push each tile into buckets and request them
         req = []
         req.push tileId for tileId, tileBounds of Tile.bounds
         
-        pos = 0
-
-        onFinish = ->
-
+        async.each req, (tileId, callback) ->
+            TileBucket.enqueue tileId, callback
+        , ->
             TileBucket.enqueue()
-
-        next = ->
-
-            if pos >= req.length
-                onFinish()
-                return
-
-            tileId = req[pos]
-
-            TileBucket.enqueue tileId, ->
-                pos++
-                next()
-        
-        next()
 
 processSuccessTileResponse = (response, tileIds) ->
 
     # invalid response
     if not response?.result?.map?
-        processErrorTileResponse tileIds
+        processErrorTileResponse tileIds, noop
         return
 
     m = response.result.map
@@ -294,9 +246,13 @@ processSuccessTileResponse = (response, tileIds) ->
 
         Database.db.collection('Tiles').update {_id:tileId}, updater, noop
 
-processErrorTileResponse = (tileIds) ->
+processErrorTileResponse = (tileIds, callback) ->
+    
+    #console.log tileIds
 
     for tileId in tileIds
+
+        #console.log Tile.data[tileId].status
 
         if Tile.data[tileId].status is STATUS_PENDING
 
@@ -313,12 +269,14 @@ processErrorTileResponse = (tileIds) ->
 
                 failTiles.push tileId
 
-            Database.db.collection('Tiles').update
-                _id: tileId
-            ,
-                $set:
-                    status: Tile.data[tileId].status
-            , noop
+    async.eachLimit tileIds, Config.Database.MaxParallel, (tileId, callback) ->
+        Database.db.collection('Tiles').update
+            _id: tileId
+        ,
+            $set:
+                status: Tile.data[tileId].status
+        , callback
+    , callback
 
 checkTimeoutAndFailTiles = ->
 

@@ -1,5 +1,7 @@
 (function() {
-  var ObjectID, STATUS_COMPLETE, STATUS_FAIL, STATUS_PANIC, STATUS_PENDING, STATUS_REQUESTING, STATUS_TIMEOUT, Tile, TileBucket, checkTimeoutAndFailTiles, delayAndExecute, failTiles, panicTiles, processErrorTileResponse, processSuccessTileResponse, timeoutTiles;
+  var ObjectID, STATUS_COMPLETE, STATUS_FAIL, STATUS_PANIC, STATUS_PENDING, STATUS_REQUESTING, STATUS_TIMEOUT, Tile, TileBucket, async, checkTimeoutAndFailTiles, delayAndExecute, failTiles, panicTiles, processErrorTileResponse, processSuccessTileResponse, timeoutTiles;
+
+  async = require('async');
 
   timeoutTiles = [];
 
@@ -36,17 +38,32 @@
       }
     },
     request: function(tileIds, callback) {
-      var boundsParamsList, completedQueries, expectedQueries, next, onAllQueriesComplete;
-      boundsParamsList = [];
-      completedQueries = 0;
-      expectedQueries = tileIds.length;
-      onAllQueriesComplete = function() {
+      var tileId, tileList, _i, _len;
+      tileList = [];
+      for (_i = 0, _len = tileIds.length; _i < _len; _i++) {
+        tileId = tileIds[_i];
+        if (Tile.data[tileId].status !== STATUS_COMPLETE) {
+          tileList.push(Tile.bounds[tileId].id);
+          Tile.data[tileId].status = STATUS_PENDING;
+        }
+      }
+      return async.eachLimit(tileList, Config.Database.MaxParallel, function(tileId, callback) {
+        return Database.db.collection('Tiles').update({
+          _id: tileId
+        }, {
+          $set: {
+            status: STATUS_PENDING
+          }
+        }, {
+          upsert: true
+        }, callback);
+      }, function(err) {
         var data, requestId;
-        if (boundsParamsList.length !== 0) {
+        if (tileList.length !== 0) {
           TileBucket.requestCount++;
           requestId = TileBucket.requestCount;
           data = {
-            quadKeys: boundsParamsList
+            quadKeys: tileList
           };
           Request.add({
             action: 'getThinnedEntitiesV4',
@@ -56,7 +73,7 @@
             },
             onError: function(err) {
               logger.error("[Request] " + err);
-              return processErrorTileResponse(tileIds);
+              return processErrorTileResponse(tileIds, noop);
             },
             afterResponse: function() {
               logger.info("[Request] " + Math.round(Request.requested / Request.maxRequest * 100).toString() + ("% [" + Request.requested + "/" + Request.maxRequest + "]") + (" timeout=" + timeoutTiles.length + ", fail=" + failTiles.length + ", panic=" + panicTiles.length + " | " + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
@@ -68,35 +85,7 @@
           });
         }
         return callback && callback();
-      };
-      next = function() {
-        var tileId;
-        if (completedQueries === expectedQueries) {
-          onAllQueriesComplete();
-          return;
-        }
-        tileId = tileIds[completedQueries];
-        if (Tile.data[tileId].status !== STATUS_COMPLETE) {
-          boundsParamsList.push(Tile.bounds[tileId].id);
-          Tile.data[tileId].status = STATUS_PENDING;
-          return Database.db.collection('Tiles').update({
-            _id: tileId
-          }, {
-            $set: {
-              status: STATUS_PENDING
-            }
-          }, {
-            upsert: true
-          }, function() {
-            completedQueries++;
-            return next();
-          });
-        } else {
-          completedQueries++;
-          return next();
-        }
-      };
-      return next();
+      });
     }
   };
 
@@ -123,13 +112,22 @@
       return tileBounds;
     },
     prepareFromDatabase: function(callback) {
-      var completedBounds, completedQueries, expectedQueries, next, onAllQueriesComplete, tileBounds;
+      var completedBounds, tileBounds;
       logger.info("[Tile] Preparing from database: [" + Config.Region.SouthWest.Lat + "," + Config.Region.SouthWest.Lng + "]-[" + Config.Region.NorthEast.Lat + "," + Config.Region.NorthEast.Lng + "], MinPortalLevel=" + Config.MinPortalLevel);
       tileBounds = Tile.calculateBounds();
-      completedQueries = 0;
-      expectedQueries = tileBounds.length;
       completedBounds = {};
-      onAllQueriesComplete = function() {
+      logger.info("[Tile] Querying " + tileBounds.length + " tile status...");
+      return async.eachLimit(tileBounds, Config.Database.MaxParallel, function(bound, callback) {
+        return Database.db.collection('Tiles').findOne({
+          _id: bound.id,
+          status: STATUS_COMPLETE
+        }, function(err, tile) {
+          if (tile != null) {
+            completedBounds[tile._id] = true;
+          }
+          return callback(err);
+        });
+      }, function(err) {
         var bounds, _i, _len;
         for (_i = 0, _len = tileBounds.length; _i < _len; _i++) {
           bounds = tileBounds[_i];
@@ -139,27 +137,7 @@
           }
         }
         return Tile._prepareTiles(callback);
-      };
-      next = function() {
-        var bound;
-        if (completedQueries === expectedQueries) {
-          onAllQueriesComplete();
-          return;
-        }
-        bound = tileBounds[completedQueries];
-        return Database.db.collection('Tiles').findOne({
-          _id: bound.id,
-          status: STATUS_COMPLETE
-        }, function(err, tile) {
-          completedQueries++;
-          if (tile != null) {
-            completedBounds[tile._id] = true;
-          }
-          return next();
-        });
-      };
-      logger.info("[Tile] Querying " + expectedQueries + " tile status...");
-      return next();
+      });
     },
     prepareNew: function(callback) {
       var bounds, tileBounds, _i, _len;
@@ -189,7 +167,7 @@
       });
     },
     start: function() {
-      var next, onFinish, pos, req, tileBounds, tileId, _ref;
+      var req, tileBounds, tileId, _ref;
       logger.info("[Tile] Begin requesting...");
       req = [];
       _ref = Tile.bounds;
@@ -197,29 +175,18 @@
         tileBounds = _ref[tileId];
         req.push(tileId);
       }
-      pos = 0;
-      onFinish = function() {
+      return async.each(req, function(tileId, callback) {
+        return TileBucket.enqueue(tileId, callback);
+      }, function() {
         return TileBucket.enqueue();
-      };
-      next = function() {
-        if (pos >= req.length) {
-          onFinish();
-          return;
-        }
-        tileId = req[pos];
-        return TileBucket.enqueue(tileId, function() {
-          pos++;
-          return next();
-        });
-      };
-      return next();
+      });
     }
   };
 
   processSuccessTileResponse = function(response, tileIds) {
     var entity, entityCount, m, tileId, tileValue, updater, _i, _len, _ref, _ref1, _results;
     if ((response != null ? (_ref = response.result) != null ? _ref.map : void 0 : void 0) == null) {
-      processErrorTileResponse(tileIds);
+      processErrorTileResponse(tileIds, noop);
       return;
     }
     m = response.result.map;
@@ -271,9 +238,8 @@
     return _results;
   };
 
-  processErrorTileResponse = function(tileIds) {
-    var tileId, _i, _len, _results;
-    _results = [];
+  processErrorTileResponse = function(tileIds, callback) {
+    var tileId, _i, _len;
     for (_i = 0, _len = tileIds.length; _i < _len; _i++) {
       tileId = tileIds[_i];
       if (Tile.data[tileId].status === STATUS_PENDING) {
@@ -286,18 +252,17 @@
         } else {
           failTiles.push(tileId);
         }
-        _results.push(Database.db.collection('Tiles').update({
-          _id: tileId
-        }, {
-          $set: {
-            status: Tile.data[tileId].status
-          }
-        }, noop));
-      } else {
-        _results.push(void 0);
       }
     }
-    return _results;
+    return async.eachLimit(tileIds, Config.Database.MaxParallel, function(tileId, callback) {
+      return Database.db.collection('Tiles').update({
+        _id: tileId
+      }, {
+        $set: {
+          status: Tile.data[tileId].status
+        }
+      }, callback);
+    }, callback);
   };
 
   checkTimeoutAndFailTiles = function() {

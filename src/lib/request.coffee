@@ -2,7 +2,6 @@ needle = require 'needle'
 
 # Request pools
 pool = []
-reqCount = 0
 
 # Parse cookie
 cookies = {}
@@ -35,19 +34,20 @@ Request = GLOBAL.Request =
 
         Request.maxRequest++
 
-        if reqCount < Config.Request.MaxParallel
+        if Request.activeRequests < Config.Request.MaxParallel
             sendRequest()
 
 Request.pool = pool
 Request.maxRequest = 0
 Request.requested = 0
+Request.activeRequests = 0
 
 sendRequest = ->
 
     return if pool.length is 0
 
     v = pool.shift()
-    reqCount++
+    Request.activeRequests++
 
     needle.post 'http://www.ingress.com/r/' + v.m, JSON.stringify(v.d),
         compressed: true
@@ -63,7 +63,13 @@ sendRequest = ->
             'X-CSRFToken': cookies.csrftoken
     , (error, response, body) ->
 
-        reqCount--
+        if v.emitted?
+            console.log 'ignore re-emitted event', error, body
+            return
+
+        v.emitted = true
+
+        Request.activeRequests--
         Request.requested++
 
         if error
@@ -81,4 +87,4 @@ sendRequest = ->
         v.response && v.response null
 
         # next request
-        sendRequest() for i in [1..Math.min(pool.length, Config.Request.MaxParallel - reqCount)]
+        sendRequest() for i in [1..Math.min(pool.length, Config.Request.MaxParallel - Request.activeRequests)]

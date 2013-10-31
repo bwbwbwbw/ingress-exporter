@@ -40,6 +40,8 @@ Config = GLOBAL.Config =
 
         ConnectString: 'localhost:27017/ingress?auto_reconnect'
 
+        MaxParallel:    10
+
         Options:
 
             safe:       true
