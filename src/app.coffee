@@ -34,6 +34,6 @@ require './lib/entity.js'
 argv = require('optimist').argv
 
 if argv.new or argv.n
-    Tile.prepareNew Tile.start
+    Tile.prepareNew Tile.start if argv.portals
 else
-    Tile.prepareFromDatabase Tile.start
+    Tile.prepareFromDatabase Tile.start if argv.portals

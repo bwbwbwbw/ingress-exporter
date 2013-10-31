@@ -42,9 +42,13 @@
   argv = require('optimist').argv;
 
   if (argv["new"] || argv.n) {
-    Tile.prepareNew(Tile.start);
+    if (argv.portals) {
+      Tile.prepareNew(Tile.start);
+    }
   } else {
-    Tile.prepareFromDatabase(Tile.start);
+    if (argv.portals) {
+      Tile.prepareFromDatabase(Tile.start);
+    }
   }
 
 }).call(this);

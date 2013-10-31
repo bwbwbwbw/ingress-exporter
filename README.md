@@ -5,7 +5,7 @@ Export all portals, links, fields and system broadcasts in a specific geo-region
 
 ```bash
 npm install
-node build/app.js
+node build/app.js --portals
 ```
 
 # Requirement
@@ -16,16 +16,10 @@ MongoDB > 2.2
 
 # Usage
 
-### Continue the last task (default):
-
-```bash
-node build/app.js
 ```
+--portals     Request portals information
 
-### Start a new task:
-
-```bash
-node build/app.js --new
+--new  -n     Start a new request
 ```
 
 # Warning
