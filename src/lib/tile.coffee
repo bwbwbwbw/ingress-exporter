@@ -39,9 +39,44 @@ TileBucket = GLOBAL.TileBucket =
             if Tile.data[tileId].status isnt STATUS_COMPLETE
                 tileList.push Tile.bounds[tileId].id
                 Tile.data[tileId].status = STATUS_PENDING
+            
+        return if tileList.length is 0
+
+        TileBucket.requestCount++
+        requestId = TileBucket.requestCount
+
+        data = quadKeys: tileList
+
+        # add to queue first, then update database, then send it
+        delayObject = Request.add
+
+            action: 'getThinnedEntitiesV4'
+            data:   data
+            onSuccess: (response) ->
+
+                processSuccessTileResponse response, tileIds
+
+            onError: (err) ->
+
+                logger.error "[Tile Request] " + err
+                processErrorTileResponse tileIds, noop
+
+            afterResponse: ->
+
+                checkTimeoutAndFailTiles()
+
+                logger.info "[Tile Request] " +
+                    Math.round(Request.requested / Request.maxRequest * 100).toString() +
+                    "%\t[#{Request.requested}/#{Request.maxRequest}]" +
+                    "\t#{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
+
+            beforeRequest: ->
+
+                null
 
         # reset status in database
         async.eachLimit tileList, Config.Database.MaxParallel, (tileId, callback) ->
+            
             Database.db.collection('Tiles').update
                 _id:    tileId
             ,
@@ -50,46 +85,13 @@ TileBucket = GLOBAL.TileBucket =
             ,
                 upsert: true
             , callback
-        , (err) ->
-            # TODO: handle error
 
+        , (err) ->
             # onFinish
 
-            if tileList.length isnt 0
-
-                TileBucket.requestCount++
-                requestId = TileBucket.requestCount
-
-                data = quadKeys: tileList
-
-                Request.add
-
-                    action: 'getThinnedEntitiesV4'
-                    data:   data
-                    onSuccess: (response) ->
-
-                        processSuccessTileResponse response, tileIds
-
-                    onError: (err) ->
-
-                        logger.error "[Request] " + err
-                        processErrorTileResponse tileIds, noop
-
-                    afterResponse: ->
-
-                        logger.info "[Request] " +
-                            Math.round(Request.requested / Request.maxRequest * 100).toString() +
-                            "% [#{Request.requested}/#{Request.maxRequest}]" +
-                            " timeout=#{timeoutTiles.length}, fail=#{failTiles.length}, panic=#{panicTiles.length} | #{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
-
-                        checkTimeoutAndFailTiles()
-
-                    beforeRequest: ->
-
-                        null
-
+            delayObject.schedule()
+            delayObject.schedule = null
             callback && callback()
-
 
 Tile = GLOBAL.Tile = 
     
@@ -178,6 +180,10 @@ Tile = GLOBAL.Tile =
 
     start: ->
 
+        if Tile.length is 0
+            logger.info "[Tile] Nothing to request."
+            return
+
         logger.info "[Tile] Begin requesting..."
 
         # push each tile into buckets and request them
@@ -247,12 +253,8 @@ processSuccessTileResponse = (response, tileIds) ->
         Database.db.collection('Tiles').update {_id:tileId}, updater, noop
 
 processErrorTileResponse = (tileIds, callback) ->
-    
-    #console.log tileIds
 
     for tileId in tileIds
-
-        #console.log Tile.data[tileId].status
 
         if Tile.data[tileId].status is STATUS_PENDING
 
@@ -280,7 +282,7 @@ processErrorTileResponse = (tileIds, callback) ->
 
 checkTimeoutAndFailTiles = ->
 
-    if Request.pool.length isnt 0
+    if Request.queue.length() isnt 0
 
         # request queue is not empty: wait tiles until reaching MinPerRequest
 
@@ -288,22 +290,14 @@ checkTimeoutAndFailTiles = ->
 
             pickupCount = Math.min Config.TileBucket.Max, timeoutTiles.length
 
-            ((data) ->
-                delayAndExecute 'DELAY_TIMEOUT', Config.Tile.TimeoutDelay, ->
-                    TileBucket.request data
-            )(timeoutTiles[0...pickupCount])
-
+            TileBucket.request timeoutTiles[0...pickupCount]
             timeoutTiles = timeoutTiles[pickupCount..]
 
         if failTiles.length >= Config.TileBucket.Min
 
             pickupCount = Math.min Config.TileBucket.Max, failTiles.length
 
-            ((data) ->
-                delayAndExecute 'DELAY_FAIL', Config.Tile.FailDelay, ->
-                    TileBucket.request data
-            )(failTiles[0...pickupCount])
-
+            TileBucket.request failTiles[0...pickupCount]
             failTiles = failTiles[pickupCount..]
 
     else
@@ -313,27 +307,10 @@ checkTimeoutAndFailTiles = ->
 
         if timeoutTiles.length > 0
 
-            ((data) ->
-                delayAndExecute 'DELAY_TIMEOUT', Config.Tile.TimeoutDelay, ->
-                    TileBucket.request data
-            )(timeoutTiles[..])
-            
+            TileBucket.request timeoutTiles[..]
             timeoutTiles = []
 
         if failTiles.length > 0
 
-            ((data) ->
-                delayAndExecute 'DELAY_FAIL', Config.Tile.FailDelay, ->
-                    TileBucket.request data
-            )(failTiles[..])
-
+            TileBucket.request failTiles[..]
             failTiles = []
-
-delayAndExecute = (delayerId, delay, callback) ->
-
-    return if @[delayerId]?
-
-    @[delayerId] = setTimeout =>
-        callback()
-        @[delayerId] = null
-    , delay

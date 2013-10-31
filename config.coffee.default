@@ -2,7 +2,7 @@ Config = GLOBAL.Config =
 
     Auth:
 
-        CookieRaw: 'GOOGAPPUID=xxx; csrftoken=xxx; ACSID=xxx;'
+        CookieRaw: 'GOOGAPPUID=xxx; ACSID=xxx; csrftoken=xxx;'
 
     # Warning: a higher portal level will cause bigger
     # tile region (you may get much more then you want)
@@ -21,15 +21,12 @@ Config = GLOBAL.Config =
 
     Request:
 
-        MaxParallel: 5
+        MaxParallel: 10
 
     Tile:
 
         MaxFailRetry:  3    # server response a failure
         MaxErrorRetry: 3    # network errors, etc
-
-        TimeoutDelay:  500
-        FailDelay:     4000
 
     TileBucket:
 
@@ -41,7 +38,7 @@ Config = GLOBAL.Config =
         ConnectString: 'localhost:27017/ingress?auto_reconnect'
 
         MaxParallel:    10
-
+        
         Options:
 
             safe:       true

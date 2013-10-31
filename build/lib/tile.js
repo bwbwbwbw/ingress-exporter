@@ -1,5 +1,5 @@
 (function() {
-  var ObjectID, STATUS_COMPLETE, STATUS_FAIL, STATUS_PANIC, STATUS_PENDING, STATUS_REQUESTING, STATUS_TIMEOUT, Tile, TileBucket, async, checkTimeoutAndFailTiles, delayAndExecute, failTiles, panicTiles, processErrorTileResponse, processSuccessTileResponse, timeoutTiles;
+  var ObjectID, STATUS_COMPLETE, STATUS_FAIL, STATUS_PANIC, STATUS_PENDING, STATUS_REQUESTING, STATUS_TIMEOUT, Tile, TileBucket, async, checkTimeoutAndFailTiles, failTiles, panicTiles, processErrorTileResponse, processSuccessTileResponse, timeoutTiles;
 
   async = require('async');
 
@@ -38,7 +38,7 @@
       }
     },
     request: function(tileIds, callback) {
-      var tileId, tileList, _i, _len;
+      var data, delayObject, requestId, tileId, tileList, _i, _len;
       tileList = [];
       for (_i = 0, _len = tileIds.length; _i < _len; _i++) {
         tileId = tileIds[_i];
@@ -47,6 +47,32 @@
           Tile.data[tileId].status = STATUS_PENDING;
         }
       }
+      if (tileList.length === 0) {
+        return;
+      }
+      TileBucket.requestCount++;
+      requestId = TileBucket.requestCount;
+      data = {
+        quadKeys: tileList
+      };
+      delayObject = Request.add({
+        action: 'getThinnedEntitiesV4',
+        data: data,
+        onSuccess: function(response) {
+          return processSuccessTileResponse(response, tileIds);
+        },
+        onError: function(err) {
+          logger.error("[Tile Request] " + err);
+          return processErrorTileResponse(tileIds, noop);
+        },
+        afterResponse: function() {
+          checkTimeoutAndFailTiles();
+          return logger.info("[Tile Request] " + Math.round(Request.requested / Request.maxRequest * 100).toString() + ("%\t[" + Request.requested + "/" + Request.maxRequest + "]") + ("\t" + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
+        },
+        beforeRequest: function() {
+          return null;
+        }
+      });
       return async.eachLimit(tileList, Config.Database.MaxParallel, function(tileId, callback) {
         return Database.db.collection('Tiles').update({
           _id: tileId
@@ -58,32 +84,8 @@
           upsert: true
         }, callback);
       }, function(err) {
-        var data, requestId;
-        if (tileList.length !== 0) {
-          TileBucket.requestCount++;
-          requestId = TileBucket.requestCount;
-          data = {
-            quadKeys: tileList
-          };
-          Request.add({
-            action: 'getThinnedEntitiesV4',
-            data: data,
-            onSuccess: function(response) {
-              return processSuccessTileResponse(response, tileIds);
-            },
-            onError: function(err) {
-              logger.error("[Request] " + err);
-              return processErrorTileResponse(tileIds, noop);
-            },
-            afterResponse: function() {
-              logger.info("[Request] " + Math.round(Request.requested / Request.maxRequest * 100).toString() + ("% [" + Request.requested + "/" + Request.maxRequest + "]") + (" timeout=" + timeoutTiles.length + ", fail=" + failTiles.length + ", panic=" + panicTiles.length + " | " + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
-              return checkTimeoutAndFailTiles();
-            },
-            beforeRequest: function() {
-              return null;
-            }
-          });
-        }
+        delayObject.schedule();
+        delayObject.schedule = null;
         return callback && callback();
       });
     }
@@ -168,6 +170,10 @@
     },
     start: function() {
       var req, tileBounds, tileId, _ref;
+      if (Tile.length === 0) {
+        logger.info("[Tile] Nothing to request.");
+        return;
+      }
       logger.info("[Tile] Begin requesting...");
       req = [];
       _ref = Tile.bounds;
@@ -267,54 +273,27 @@
 
   checkTimeoutAndFailTiles = function() {
     var pickupCount;
-    if (Request.pool.length !== 0) {
+    if (Request.queue.length() !== 0) {
       if (timeoutTiles.length >= Config.TileBucket.Min) {
         pickupCount = Math.min(Config.TileBucket.Max, timeoutTiles.length);
-        (function(data) {
-          return delayAndExecute('DELAY_TIMEOUT', Config.Tile.TimeoutDelay, function() {
-            return TileBucket.request(data);
-          });
-        })(timeoutTiles.slice(0, pickupCount));
+        TileBucket.request(timeoutTiles.slice(0, pickupCount));
         timeoutTiles = timeoutTiles.slice(pickupCount);
       }
       if (failTiles.length >= Config.TileBucket.Min) {
         pickupCount = Math.min(Config.TileBucket.Max, failTiles.length);
-        (function(data) {
-          return delayAndExecute('DELAY_FAIL', Config.Tile.FailDelay, function() {
-            return TileBucket.request(data);
-          });
-        })(failTiles.slice(0, pickupCount));
+        TileBucket.request(failTiles.slice(0, pickupCount));
         return failTiles = failTiles.slice(pickupCount);
       }
     } else {
       if (timeoutTiles.length > 0) {
-        (function(data) {
-          return delayAndExecute('DELAY_TIMEOUT', Config.Tile.TimeoutDelay, function() {
-            return TileBucket.request(data);
-          });
-        })(timeoutTiles.slice(0));
+        TileBucket.request(timeoutTiles.slice(0));
         timeoutTiles = [];
       }
       if (failTiles.length > 0) {
-        (function(data) {
-          return delayAndExecute('DELAY_FAIL', Config.Tile.FailDelay, function() {
-            return TileBucket.request(data);
-          });
-        })(failTiles.slice(0));
+        TileBucket.request(failTiles.slice(0));
         return failTiles = [];
       }
     }
-  };
-
-  delayAndExecute = function(delayerId, delay, callback) {
-    var _this = this;
-    if (this[delayerId] != null) {
-      return;
-    }
-    return this[delayerId] = setTimeout(function() {
-      callback();
-      return _this[delayerId] = null;
-    }, delay);
   };
 
 }).call(this);

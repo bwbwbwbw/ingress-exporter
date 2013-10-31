@@ -1,9 +1,9 @@
 (function() {
-  var C, Request, cookies, needle, pool, sendRequest, v, _i, _len, _ref;
+  var C, Request, async, cookies, needle, v, _i, _len, _ref;
 
   needle = require('needle');
 
-  pool = [];
+  async = require('async');
 
   cookies = {};
 
@@ -16,7 +16,7 @@
 
   Request = GLOBAL.Request = {
     add: function(options) {
-      var activeMunge, methodName, post_data, versionStr;
+      var activeMunge, delayObject, methodName, post_data, versionStr;
       activeMunge = Config.Munges.Data[Config.Munges.ActiveSet];
       methodName = 'dashboard.' + options.action;
       versionStr = 'version_parameter';
@@ -26,74 +26,89 @@
         method: methodName,
         version: versionStr
       }, options.data));
-      pool.push({
+      delayObject = {
+        schedule: noop
+      };
+      Request.queue.push({
         m: methodName,
         d: post_data,
         success: options.onSuccess,
         error: options.onError,
         request: options.beforeRequest,
-        response: options.afterResponse
+        response: options.afterResponse,
+        delayobj: delayObject
       });
       Request.maxRequest++;
-      if (Request.activeRequests < Config.Request.MaxParallel) {
-        return sendRequest();
-      }
+      return delayObject;
     }
   };
 
-  Request.pool = pool;
+  Request.queue = async.queue(function(task, callback) {
+    var func;
+    Request.activeRequests++;
+    func = function() {
+      return needle.post('http://www.ingress.com/r/' + task.m, JSON.stringify(task.d), {
+        compressed: true,
+        headers: {
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Content-type': 'application/json; charset=utf-8',
+          'Cookie': Config.Auth.CookieRaw,
+          'Host': 'www.ingress.com',
+          'Origin': 'http://www.ingress.com',
+          'Referer': 'http://www.ingress.com/intel',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36',
+          'X-CSRFToken': cookies.csrftoken
+        }
+      }, function(error, response, body) {
+        if (task.emitted != null) {
+          console.warn('[DEBUG] Ignored reemitted event');
+          return;
+        }
+        task.emitted = true;
+        Request.activeRequests--;
+        Request.requested++;
+        if (error) {
+          task.error && task.error(error);
+          task.response && task.response(error);
+          callback();
+          return;
+        }
+        if (typeof body === 'string') {
+          if (body.indexOf('CSRF verification failed. Request aborted.' > -1)) {
+            logger.error('[Auth] CSRF verification failed. Please make sure that the cookie is right.');
+            process.exit(0);
+            return;
+          }
+          if (body.indexOf('User not authenticated' > -1)) {
+            logger.error('[Auth] Authentication failed. Please update the cookie.');
+            process.exit(0);
+            return;
+          }
+          logger.error('[DEBUG] Unknown server response');
+          callback();
+          return;
+        }
+        task.success && task.success(body);
+        task.response && task.response(null);
+        return callback();
+      });
+    };
+    if (task.delayobj.schedule === null) {
+      return func();
+    } else {
+      return task.delayobj.schedule = func;
+    }
+  }, Config.Request.MaxParallel);
+
+  Request.queue.drain = function() {
+    logger.info('[DONE]');
+    return process.exit(0);
+  };
 
   Request.maxRequest = 0;
 
   Request.requested = 0;
 
   Request.activeRequests = 0;
-
-  sendRequest = function() {
-    if (pool.length === 0) {
-      return;
-    }
-    v = pool.shift();
-    Request.activeRequests++;
-    return needle.post('http://www.ingress.com/r/' + v.m, JSON.stringify(v.d), {
-      compressed: true,
-      headers: {
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Content-type': 'application/json; charset=utf-8',
-        'Cookie': Config.Auth.CookieRaw,
-        'Host': 'www.ingress.com',
-        'Origin': 'http://www.ingress.com',
-        'Referer': 'http://www.ingress.com/intel',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36',
-        'X-CSRFToken': cookies.csrftoken
-      }
-    }, function(error, response, body) {
-      var i, _j, _ref1, _results;
-      if (v.emitted != null) {
-        console.log('ignore re-emitted event', error, body);
-        return;
-      }
-      v.emitted = true;
-      Request.activeRequests--;
-      Request.requested++;
-      if (error) {
-        v.error && v.error(error);
-        v.response && v.response(error);
-        return;
-      }
-      if (body === 'User not authenticated') {
-        logger.error('[Auth] Authorize failed. Please update the cookie.');
-        process.exit(0);
-        return;
-      }
-      v.success && v.success(body);
-      v.response && v.response(null);
-      _results = [];
-      for (i = _j = 1, _ref1 = Math.min(pool.length, Config.Request.MaxParallel - Request.activeRequests); 1 <= _ref1 ? _j <= _ref1 : _j >= _ref1; i = 1 <= _ref1 ? ++_j : --_j) {
-        _results.push(sendRequest());
-      }
-      return _results;
-    });
-  };
 
 }).call(this);
