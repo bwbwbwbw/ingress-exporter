@@ -15,9 +15,9 @@
   }
 
   Request = GLOBAL.Request = {
-    add: function(options) {
-      var activeMunge, delayObject, methodName, post_data, versionStr;
-      activeMunge = Config.Munges.Data[Config.Munges.ActiveSet];
+    generate: function(options) {
+      var activeMunge, methodName, post_data, versionStr;
+      activeMunge = options.munge != null ? options.munge : Munges.Data[Munges.ActiveSet];
       methodName = 'dashboard.' + options.action;
       versionStr = 'version_parameter';
       methodName = activeMunge[methodName];
@@ -25,30 +25,30 @@
       post_data = Utils.requestDataMunge(Utils.extend({
         method: methodName,
         version: versionStr
-      }, options.data));
-      delayObject = {
-        schedule: noop
-      };
-      Request.queue.push({
+      }, options.data), activeMunge);
+      return {
         m: methodName,
         d: post_data,
         success: options.onSuccess,
         error: options.onError,
         request: options.beforeRequest,
         response: options.afterResponse,
-        delayobj: delayObject
-      });
+        delayobj: {
+          schedule: noop
+        }
+      };
+    },
+    add: function(options) {
+      var task;
+      task = Request.generate(options);
+      Request.queue.push(task);
       Request.maxRequest++;
-      return delayObject;
-    }
-  };
-
-  Request.queue = async.queue(function(task, callback) {
-    var func;
-    Request.activeRequests++;
-    func = function() {
-      return needle.post('http://www.ingress.com/r/' + task.m, JSON.stringify(task.d), {
+      return task.delayobj;
+    },
+    post: function(url, data, callback) {
+      return needle.post('http://www.ingress.com' + url, JSON.stringify(data), {
         compressed: true,
+        timeout: 20000,
         headers: {
           'Accept': 'application/json, text/javascript, */*; q=0.01',
           'Content-type': 'application/json; charset=utf-8',
@@ -59,7 +59,46 @@
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36',
           'X-CSRFToken': cookies.csrftoken
         }
-      }, function(error, response, body) {
+      }, callback);
+    },
+    get: function(url, callback) {
+      return needle.get('http://www.ingress.com' + url, {
+        compressed: true,
+        timeout: 20000,
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Cookie': Config.Auth.CookieRaw,
+          'Host': 'www.ingress.com',
+          'Cache-Control': 'max-age=0',
+          'Origin': 'http://www.ingress.com',
+          'Referer': 'http://www.ingress.com/intel',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
+        }
+      }, callback);
+    },
+    processResponse: function(error, response, body) {
+      if (typeof body === 'string') {
+        if (body.indexOf('CSRF verification failed. Request aborted.' > -1)) {
+          logger.error('[Auth] CSRF verification failed. Please make sure that the cookie is right.');
+          process.exit(0);
+          return false;
+        }
+        if (body.indexOf('User not authenticated' > -1)) {
+          logger.error('[Auth] Authentication failed. Please update the cookie.');
+          process.exit(0);
+          return false;
+        }
+        return false;
+      }
+      return true;
+    }
+  };
+
+  Request.queue = async.queue(function(task, callback) {
+    var func;
+    Request.activeRequests++;
+    func = function() {
+      return Request.post('/r/' + task.m, task.d, function(error, response, body) {
         if (task.emitted != null) {
           console.warn('[DEBUG] Ignored reemitted event');
           return;
@@ -73,17 +112,7 @@
           callback();
           return;
         }
-        if (typeof body === 'string') {
-          if (body.indexOf('CSRF verification failed. Request aborted.' > -1)) {
-            logger.error('[Auth] CSRF verification failed. Please make sure that the cookie is right.');
-            process.exit(0);
-            return;
-          }
-          if (body.indexOf('User not authenticated' > -1)) {
-            logger.error('[Auth] Authentication failed. Please update the cookie.');
-            process.exit(0);
-            return;
-          }
+        if (!Request.processResponse(error, response, body)) {
           logger.error('[DEBUG] Unknown server response');
           callback();
           return;

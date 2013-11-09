@@ -5,8 +5,7 @@ var LEVEL_TO_TILES_PER_EDGE = [65536, 65536, 16384, 16384, 4096, 1536, 1024, 256
 
 var Utils = GLOBAL.Utils = {
 
-    requestDataMunge: function(data) {
-        var activeMunge = Config.Munges.Data[Config.Munges.ActiveSet];
+    requestDataMunge: function(data, activeMunge) {
 
         function munge(obj) {
 

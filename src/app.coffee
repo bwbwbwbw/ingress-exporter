@@ -21,6 +21,7 @@ exitProcess = GLOBAL.exitProcess = ->
 #######################
 
 require './config.js'
+require './munges.js'
 
 require './lib/leaflet.js'
 require './lib/utils.js'
@@ -28,12 +29,18 @@ require './lib/database.js'
 require './lib/request.js'
 require './lib/tile.js'
 require './lib/entity.js'
+require './lib/chat.js'
+require './lib/mungedetector.js'
 
 #######################
 # bootstrap
 argv = require('optimist').argv
 
-if argv.new or argv.n
-    Tile.prepareNew Tile.start if argv.portals
-else
-    Tile.prepareFromDatabase Tile.start if argv.portals
+MungeDetector.detect ->
+
+    if argv.new or argv.n
+        Tile.prepareNew Tile.start if argv.portals
+        Chat.PrepareNew Chat.start if argv.broadcasts
+    else
+        Tile.prepareFromDatabase Tile.start if argv.portals
+        Chat.prepareFromDatabase Chat.start if argv.broadcasts

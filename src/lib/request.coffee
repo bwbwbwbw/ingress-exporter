@@ -10,9 +10,9 @@ for v in Config.Auth.CookieRaw.split(';')
 
 Request = GLOBAL.Request = 
     
-    add: (options) ->
+    generate: (options) ->
 
-        activeMunge = Config.Munges.Data[Config.Munges.ActiveSet]
+        activeMunge = if options.munge? then options.munge else Munges.Data[Munges.ActiveSet]
 
         methodName = 'dashboard.' + options.action
         versionStr = 'version_parameter'
@@ -20,35 +20,35 @@ Request = GLOBAL.Request =
         methodName = activeMunge[methodName]
         versionStr = activeMunge[versionStr]
 
-        post_data = Utils.requestDataMunge Utils.extend({method: methodName, version: versionStr}, options.data)
+        post_data = Utils.requestDataMunge Utils.extend({method: methodName, version: versionStr}, options.data), activeMunge
 
-        delayObject =
-            schedule: noop
-
-        Request.queue.push
+        # return:
+        return {
             m:        methodName
             d:        post_data
             success:  options.onSuccess
             error:    options.onError
             request:  options.beforeRequest
             response: options.afterResponse
-            delayobj: delayObject
+            delayobj: {schedule: noop}
+        }
 
+    add: (options) ->
+
+        task = Request.generate options
+
+        Request.queue.push task
         Request.maxRequest++
 
-        return delayObject
+        return task.delayobj
 
-Request.queue = async.queue (task, callback) ->
+    post: (url, data, callback) ->
 
-    Request.activeRequests++
+        needle.post 'http://www.ingress.com' + url, JSON.stringify(data),
 
-    func = ->
-
-        needle.post 'http://www.ingress.com/r/' + task.m, JSON.stringify(task.d),
-            
             compressed: true
+            timeout:    20000
             headers:
-                # user-agent is essential for GZIP response here
                 'Accept': 'application/json, text/javascript, */*; q=0.01'
                 'Content-type': 'application/json; charset=utf-8'
                 'Cookie': Config.Auth.CookieRaw
@@ -58,7 +58,50 @@ Request.queue = async.queue (task, callback) ->
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
                 'X-CSRFToken': cookies.csrftoken
 
-        , (error, response, body) ->
+        , callback
+
+    get: (url, callback) ->
+
+        needle.get 'http://www.ingress.com' + url, 
+
+            compressed: true
+            timeout:    20000
+            headers:
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+                'Cookie': Config.Auth.CookieRaw
+                'Host': 'www.ingress.com'
+                'Cache-Control': 'max-age=0'
+                'Origin': 'http://www.ingress.com'
+                'Referer': 'http://www.ingress.com/intel'
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
+
+        , callback
+
+    processResponse: (error, response, body) ->
+
+        if typeof body is 'string'
+
+            if body.indexOf 'CSRF verification failed. Request aborted.' > -1
+                logger.error '[Auth] CSRF verification failed. Please make sure that the cookie is right.'
+                process.exit 0
+                return false
+
+            if body.indexOf 'User not authenticated' > -1
+                logger.error '[Auth] Authentication failed. Please update the cookie.'
+                process.exit 0
+                return false
+
+            return false
+
+        true
+
+Request.queue = async.queue (task, callback) ->
+
+    Request.activeRequests++
+
+    func = ->
+
+        Request.post '/r/' + task.m, task.d, (error, response, body) ->
 
             if task.emitted?
                 console.warn '[DEBUG] Ignored reemitted event'
@@ -75,18 +118,7 @@ Request.queue = async.queue (task, callback) ->
                 callback()
                 return
 
-            if typeof body is 'string'
-
-                if body.indexOf 'CSRF verification failed. Request aborted.' > -1
-                    logger.error '[Auth] CSRF verification failed. Please make sure that the cookie is right.'
-                    process.exit 0
-                    return
-
-                if body.indexOf 'User not authenticated' > -1
-                    logger.error '[Auth] Authentication failed. Please update the cookie.'
-                    process.exit 0
-                    return
-
+            if not Request.processResponse error, response, body
                 logger.error '[DEBUG] Unknown server response'
                 callback()
                 return

@@ -27,6 +27,8 @@
 
   require('./config.js');
 
+  require('./munges.js');
+
   require('./lib/leaflet.js');
 
   require('./lib/utils.js');
@@ -39,16 +41,28 @@
 
   require('./lib/entity.js');
 
+  require('./lib/chat.js');
+
+  require('./lib/mungedetector.js');
+
   argv = require('optimist').argv;
 
-  if (argv["new"] || argv.n) {
-    if (argv.portals) {
-      Tile.prepareNew(Tile.start);
+  MungeDetector.detect(function() {
+    if (argv["new"] || argv.n) {
+      if (argv.portals) {
+        Tile.prepareNew(Tile.start);
+      }
+      if (argv.broadcasts) {
+        return Chat.PrepareNew(Chat.start);
+      }
+    } else {
+      if (argv.portals) {
+        Tile.prepareFromDatabase(Tile.start);
+      }
+      if (argv.broadcasts) {
+        return Chat.prepareFromDatabase(Chat.start);
+      }
     }
-  } else {
-    if (argv.portals) {
-      Tile.prepareFromDatabase(Tile.start);
-    }
-  }
+  });
 
 }).call(this);

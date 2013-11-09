@@ -33,6 +33,10 @@ Config = GLOBAL.Config =
         Max: 4  # it seems that tiles will TIMEOUT if larger then 4
         Min: 4
 
+    Chat:
+
+        SplitTimespanMS: 3*60*60*1000 # 3hrs
+    
     Database:
 
         ConnectString: 'localhost:27017/ingress?auto_reconnect'
@@ -42,48 +46,3 @@ Config = GLOBAL.Config =
         Options:
 
             safe:       true
-
-    Munges:
-
-        ActiveSet: 0 # from IITC
-
-        Data: [{
-            'dashboard.getGameScore': 'vzjhib746rvkre04',          # GET_GAME_SCORE
-            'dashboard.getPaginatedPlextsV2': 'gqa96zhqpddtfmkl',  # GET_PAGINATED_PLEXTS
-            'dashboard.getThinnedEntitiesV4': '18lmw7lytgxji0dk',  # GET_THINNED_ENTITIES
-            'dashboard.getPlayersByGuids': 'emb5xrj8rav1i0be',     # LOOKUP_PLAYERS
-            'dashboard.redeemReward': '4xqof5pldqab63rb',          # REDEEM_REWARD
-            'dashboard.sendInviteEmail': 'yq5wxjlnud0tj6hu',       # SEND_INVITE_EMAIL
-            'dashboard.sendPlext': 'e1ipqdxjlwd3l7zb',             # SEND_PLEXT
-
-            # common parameters
-            method: 'wg7gyxoanqc1si5r',
-            version: 'adlo9o4kjvho5q94', #guessed parameter name - only seen munged
-            version_parameter: '56036a6497ea344a9fffa38b171a77c092c1f220', # passed as the value to the above parameter
-
-            # GET_THINNED_ENTITIES
-            quadKeys: '6vcl0ivqz4aj5sfu', #guessed parameter name - only seen munged
-
-            # GET_PAGINATED_PLEXTS
-            desiredNumItems: '6jd5b49wn748diye',
-            minLatE6: '891ebsryg45b8cxb',
-            minLngE6: 'mvepdcx1k6noya15',
-            maxLatE6: 's3rh3fhji5mcjlof',
-            maxLngE6: 'yqdgfuukrxj8byzj',
-            minTimestampMs: 'btf0kpztxrkt6sl6',
-            maxTimestampMs: 'hg8vhtehxf53n5cu',
-            chatTab: '6bk9rmebtk1ux6da', #guessed parameter name - only seen munged
-            ascendingTimestampOrder: '4zw3v6xwp117r47w',
-
-            # SEND_PLEXT
-            message: '55vpsci0hji0ai5x',
-            latE6: 'lyhrt4miuwc7w29d',
-            lngE6: 'c1yl2qmzfu5j23ao',
-            #  chatTab: '6bk9rmebtk1ux6da', #guessed parameter name - only seen munged
-
-            # LOOKUP_PLAYERS
-            guids: 'k76phw8ey9z21z7c',
-
-            # SEND_INVITE_EMAIL
-            inviteeEmailAddress: 'x16pe9u4i8bidbi2',
-        }]
