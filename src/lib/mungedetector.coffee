@@ -2,20 +2,37 @@ async = require 'async'
 
 NemesisMethodName = null
 
-# use latest munge-set
-Munges.ActiveSet = Munges.Data.length - 1 if not Munges.ActiveSet?
+Munges = GLOBAL.Munges =
+    Data:      null
+    ActiveSet: 0
 
 MungeDetector = GLOBAL.MungeDetector = 
     
     detect: (callback) ->
 
-        logger.info '[MungeDetector] Initialize: Detecting munge data...'
-
         async.series [
-        
+
             (callback) ->
 
-                # 1. use the internal munge-set
+                # 0. retrive munge data from database
+
+                Database.db.collection('MungeData').findOne {_id: 'munge'}, (err, record) ->
+
+                    if record?
+                        Munges.Data = record.data
+                        Munges.ActiveSet = record.index
+
+                    callback()
+
+            , (callback) ->
+
+                # 1. test by internal munge-set
+
+                # No munges in database: skip this step
+                if Munges.Data is null
+                    callback()
+                    return
+
                 logger.info '[MungeDetector] Trying to use internal munge data.'
 
                 tryMungeSet Munges.Data[Munges.ActiveSet], (err) ->
@@ -30,26 +47,33 @@ MungeDetector = GLOBAL.MungeDetector =
             , (callback) ->
 
                 # 2. get munge-index from JavaScript online
+
+                # No munges in database: skip this step
+                if Munges.Data is null
+                    callback()
+                    return
+
                 logger.info '[MungeDetector] Trying to use alternative internal munge data.'
 
                 detectMungeIndex (err) ->
 
                     if not err?
-                        callback 'done'
+                        callback 'new'
                         return
 
                     logger.warn '[MungeDetector] Failed.'
                     callback()
-            
+
             , (callback) ->
 
                 # 3. get munge data from IITC
+
                 logger.info '[MungeDetector] Trying to parse newest IITC munge data.'
 
                 getMungeIITC (err) ->
 
                     if not err?
-                        callback 'done'
+                        callback 'new'
                         return
 
                     logger.warn '[MungeDetector] Failed.'
@@ -57,15 +81,35 @@ MungeDetector = GLOBAL.MungeDetector =
 
             , (callback) ->
 
-                # N. fall to here: no useable munge-set
+                # :( no useable munge-set
+
                 callback 'fail'
 
         ], (err) ->
 
-            if err is 'done'
+            if err is 'done' or err is 'new'
+                
                 logger.info '[MungeDetector] Detect successfully.'
-                callback && callback()
+
+                if err is 'new'
+
+                    Database.db.collection('MungeData').update {_id: 'munge'},
+                        $set:
+                            data:  Munges.Data
+                            index: Munges.ActiveSet
+                    , {upsert: true}
+                    , (err) ->
+                        logger.info '[MungeDetector] Munge data saved.'
+                        callback && callback()
+                        return
+
+                else
+
+                    callback && callback()
+                    return
+
             else
+
                 logger.error '[MungeDetector] Could not detect munge data. Tasks are terminated.'
                 process.exit 0
 
@@ -112,10 +156,16 @@ detectMungeIndex = (callback) ->
         for munge, index in Munges.Data
             if NemesisMethodName.GET_GAME_SCORE is munge['dashboard.getGameScore']
                 Munges.ActiveSet = index
+                break
+
+        # test it
+        tryMungeSet Munges.Data[Munges.ActiveSet], (err) ->
+
+            if not err?
                 callback()
                 return
 
-        callback 'fail'
+            callback 'fail'
 
 getMungeIITC = (callback) ->
 
@@ -138,15 +188,24 @@ getMungeIITC = (callback) ->
         p2 = body.indexOf ']', p1
 
         MungeSet = eval("(" + body.substring(p1 + MAGIC_CODE.length, p2 + 1) + ")")
+        Munges.Data = MungeSet
 
-        for munge, index in MungeSet
-            if NemesisMethodName.GET_GAME_SCORE is munge['dashboard.getGameScore']
-                Munges.Data = MungeSet
-                Munges.ActiveSet = index
+        if NemesisMethodName isnt null
 
-                # TODO: write new munge-data to local
+            for munge, index in MungeSet
+                if NemesisMethodName.GET_GAME_SCORE is munge['dashboard.getGameScore']
+                    Munges.ActiveSet = index
+                    break
 
+        else
+
+            Munges.ActiveSet = Munges.Data.length - 1
+        
+        # test it
+        tryMungeSet Munges.Data[Munges.ActiveSet], (err) ->
+
+            if not err?
                 callback()
                 return
 
-        callback 'fail'
+            callback 'fail'

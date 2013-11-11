@@ -1,5 +1,5 @@
 (function() {
-  var argv, exitProcess, logger, noop;
+  var argv, exitProcess, logger, noop, taskCount;
 
   logger = GLOBAL.logger = require('winston');
 
@@ -27,8 +27,6 @@
 
   require('./config.js');
 
-  require('./munges.js');
-
   require('./lib/leaflet.js');
 
   require('./lib/utils.js');
@@ -47,21 +45,30 @@
 
   argv = require('optimist').argv;
 
+  taskCount = 0;
+
   MungeDetector.detect(function() {
     if (argv["new"] || argv.n) {
       if (argv.portals) {
         Tile.prepareNew(Tile.start);
+        taskCount++;
       }
       if (argv.broadcasts) {
-        return Chat.PrepareNew(Chat.start);
+        Chat.PrepareNew(Chat.start);
+        taskCount++;
       }
     } else {
       if (argv.portals) {
         Tile.prepareFromDatabase(Tile.start);
+        taskCount++;
       }
       if (argv.broadcasts) {
-        return Chat.prepareFromDatabase(Chat.start);
+        Chat.prepareFromDatabase(Chat.start);
+        taskCount++;
       }
+    }
+    if (taskCount === 0) {
+      return process.exit(0);
     }
   });
 

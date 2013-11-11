@@ -1,19 +1,33 @@
 (function() {
-  var MungeDetector, NemesisMethodName, async, detectMungeIndex, getMungeIITC, tryMungeSet;
+  var MungeDetector, Munges, NemesisMethodName, async, detectMungeIndex, getMungeIITC, tryMungeSet;
 
   async = require('async');
 
   NemesisMethodName = null;
 
-  if (Munges.ActiveSet == null) {
-    Munges.ActiveSet = Munges.Data.length - 1;
-  }
+  Munges = GLOBAL.Munges = {
+    Data: null,
+    ActiveSet: 0
+  };
 
   MungeDetector = GLOBAL.MungeDetector = {
     detect: function(callback) {
-      logger.info('[MungeDetector] Initialize: Detecting munge data...');
       return async.series([
         function(callback) {
+          return Database.db.collection('MungeData').findOne({
+            _id: 'munge'
+          }, function(err, record) {
+            if (record != null) {
+              Munges.Data = record.data;
+              Munges.ActiveSet = record.index;
+            }
+            return callback();
+          });
+        }, function(callback) {
+          if (Munges.Data === null) {
+            callback();
+            return;
+          }
           logger.info('[MungeDetector] Trying to use internal munge data.');
           return tryMungeSet(Munges.Data[Munges.ActiveSet], function(err) {
             if (err == null) {
@@ -24,10 +38,14 @@
             return callback();
           });
         }, function(callback) {
+          if (Munges.Data === null) {
+            callback();
+            return;
+          }
           logger.info('[MungeDetector] Trying to use alternative internal munge data.');
           return detectMungeIndex(function(err) {
             if (err == null) {
-              callback('done');
+              callback('new');
               return;
             }
             logger.warn('[MungeDetector] Failed.');
@@ -37,7 +55,7 @@
           logger.info('[MungeDetector] Trying to parse newest IITC munge data.');
           return getMungeIITC(function(err) {
             if (err == null) {
-              callback('done');
+              callback('new');
               return;
             }
             logger.warn('[MungeDetector] Failed.');
@@ -47,9 +65,25 @@
           return callback('fail');
         }
       ], function(err) {
-        if (err === 'done') {
+        if (err === 'done' || err === 'new') {
           logger.info('[MungeDetector] Detect successfully.');
-          return callback && callback();
+          if (err === 'new') {
+            return Database.db.collection('MungeData').update({
+              _id: 'munge'
+            }, {
+              $set: {
+                data: Munges.Data,
+                index: Munges.ActiveSet
+              }
+            }, {
+              upsert: true
+            }, function(err) {
+              logger.info('[MungeDetector] Munge data saved.');
+              callback && callback();
+            });
+          } else {
+            callback && callback();
+          }
         } else {
           logger.error('[MungeDetector] Could not detect munge data. Tasks are terminated.');
           return process.exit(0);
@@ -102,11 +136,16 @@
         munge = _ref[index];
         if (NemesisMethodName.GET_GAME_SCORE === munge['dashboard.getGameScore']) {
           Munges.ActiveSet = index;
+          break;
+        }
+      }
+      return tryMungeSet(Munges.Data[Munges.ActiveSet], function(err) {
+        if (err == null) {
           callback();
           return;
         }
-      }
-      return callback('fail');
+        return callback('fail');
+      });
     });
   };
 
@@ -127,16 +166,25 @@
       p1 = body.indexOf(MAGIC_CODE);
       p2 = body.indexOf(']', p1);
       MungeSet = eval("(" + body.substring(p1 + MAGIC_CODE.length, p2 + 1) + ")");
-      for (index = _i = 0, _len = MungeSet.length; _i < _len; index = ++_i) {
-        munge = MungeSet[index];
-        if (NemesisMethodName.GET_GAME_SCORE === munge['dashboard.getGameScore']) {
-          Munges.Data = MungeSet;
-          Munges.ActiveSet = index;
+      Munges.Data = MungeSet;
+      if (NemesisMethodName !== null) {
+        for (index = _i = 0, _len = MungeSet.length; _i < _len; index = ++_i) {
+          munge = MungeSet[index];
+          if (NemesisMethodName.GET_GAME_SCORE === munge['dashboard.getGameScore']) {
+            Munges.ActiveSet = index;
+            break;
+          }
+        }
+      } else {
+        Munges.ActiveSet = Munges.Data.length - 1;
+      }
+      return tryMungeSet(Munges.Data[Munges.ActiveSet], function(err) {
+        if (err == null) {
           callback();
           return;
         }
-      }
-      return callback('fail');
+        return callback('fail');
+      });
     });
   };
 

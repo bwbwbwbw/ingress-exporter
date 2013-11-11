@@ -21,7 +21,6 @@ exitProcess = GLOBAL.exitProcess = ->
 #######################
 
 require './config.js'
-require './munges.js'
 
 require './lib/leaflet.js'
 require './lib/utils.js'
@@ -36,11 +35,23 @@ require './lib/mungedetector.js'
 # bootstrap
 argv = require('optimist').argv
 
+taskCount = 0
+
 MungeDetector.detect ->
 
     if argv.new or argv.n
-        Tile.prepareNew Tile.start if argv.portals
-        Chat.PrepareNew Chat.start if argv.broadcasts
+        if argv.portals
+            Tile.prepareNew Tile.start
+            taskCount++
+        if argv.broadcasts
+            Chat.PrepareNew Chat.start
+            taskCount++
     else
-        Tile.prepareFromDatabase Tile.start if argv.portals
-        Chat.prepareFromDatabase Chat.start if argv.broadcasts
+        if argv.portals
+            Tile.prepareFromDatabase Tile.start
+            taskCount++
+        if argv.broadcasts
+            Chat.prepareFromDatabase Chat.start
+            taskCount++
+
+    process.exit 0 if taskCount is 0
