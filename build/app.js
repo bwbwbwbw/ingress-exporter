@@ -54,7 +54,7 @@
         taskCount++;
       }
       if (argv.broadcasts) {
-        Chat.PrepareNew(Chat.start);
+        Chat.prepareNew(Chat.start);
         taskCount++;
       }
     } else {

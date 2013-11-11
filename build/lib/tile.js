@@ -1,5 +1,5 @@
 (function() {
-  var ObjectID, STATUS_COMPLETE, STATUS_FAIL, STATUS_PANIC, STATUS_PENDING, STATUS_REQUESTING, STATUS_TIMEOUT, Tile, TileBucket, async, checkTimeoutAndFailTiles, failTiles, panicTiles, processErrorTileResponse, processSuccessTileResponse, timeoutTiles;
+  var STATUS_COMPLETE, STATUS_FAIL, STATUS_PANIC, STATUS_PENDING, STATUS_REQUESTING, STATUS_TIMEOUT, Tile, TileBucket, async, checkTimeoutAndFailTiles, failTiles, panicTiles, processErrorTileResponse, processSuccessTileResponse, timeoutTiles;
 
   async = require('async');
 
@@ -8,8 +8,6 @@
   failTiles = [];
 
   panicTiles = [];
-
-  ObjectID = Database.db.bson_serializer.ObjectID;
 
   STATUS_PENDING = 0;
 
