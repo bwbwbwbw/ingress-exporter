@@ -114,6 +114,14 @@
         logger.error('[DEBUG] Unknown server response');
         return;
       }
+      if (typeof body === 'string') {
+        task.error && task.error(body);
+        return;
+      }
+      if (body.error != null) {
+        task.error && task.error(body.error);
+        return;
+      }
       return task.success && task.success(body);
     });
   };
