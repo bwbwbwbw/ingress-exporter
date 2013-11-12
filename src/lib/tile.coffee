@@ -165,7 +165,7 @@ Tile = GLOBAL.Tile =
 
         logger.info "[Portals] Prepared #{Tile.length} tiles"
         
-        Database.db.collection('Tiles').ensureIndex [['status', 1]], false, ->
+        Database.db.collection('Tiles').ensureIndex {status: 1}, ->
 
             for tileId, bounds of Tile.bounds
 
