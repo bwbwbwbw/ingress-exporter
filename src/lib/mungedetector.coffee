@@ -10,6 +10,8 @@ MungeDetector = GLOBAL.MungeDetector =
     
     detect: (callback) ->
 
+        TaskManager.begin()
+
         async.series [
 
             (callback) ->
@@ -99,18 +101,23 @@ MungeDetector = GLOBAL.MungeDetector =
                             index: Munges.ActiveSet
                     , {upsert: true}
                     , (err) ->
+                        
                         logger.info '[MungeDetector] Munge data saved.'
+
                         callback && callback()
+                        TaskManager.end 'MungeDetector.detect'
                         return
 
                 else
 
                     callback && callback()
+                    TaskManager.end 'MungeDetector.detect'
                     return
 
             else
 
                 logger.error '[MungeDetector] Could not detect munge data. Tasks are terminated.'
+                TaskManager.end 'MungeDetector.detect'
                 process.exit 0
 
 tryMungeSet = (munge, callback) ->
