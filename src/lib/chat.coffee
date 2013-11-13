@@ -2,9 +2,10 @@ async = require 'async'
 
 ObjectID = Database.db.bson_serializer.ObjectID
 
-STATUS_PENDING  = 0
-STATUS_ERROR    = 1
-STATUS_COMPLETE = 2
+STATUS_PENDING     = 0
+STATUS_ERROR       = 1
+STATUS_NOTCOMPLETE = 2
+STATUS_COMPLETE    = 3
 
 Chat = GLOBAL.Chat =
     
@@ -50,14 +51,16 @@ Chat = GLOBAL.Chat =
 
             , {upsert: true}, (err) ->
 
-                console.info "[Broadcasts] Created #{preparedTasks.length} tasks (all #{Chat.length} tasks)."
-                callback && callback()
+                logger.info "[Broadcasts] Created #{preparedTasks.length} tasks (all #{Chat.length} tasks)."
+                callback && callback.apply this, arguments
     
     prepareFromDatabase: (callback) ->
 
         logger.info "[Broadcasts] Continue: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}]"
         
         # TODO: Maybe should take TimeOffset into consideration?
+
+        TaskManager.begin()
 
         timestampMin    = new Date().getTime() - Config.Chat.TraceTimespanMS
         timestampMinMax = new Date().getTime() - Config.Chat.MaxTraceTimespanMS
@@ -93,8 +96,10 @@ Chat = GLOBAL.Chat =
 
                 Chat.createTasks timestampMin, callback
 
-            , callback
-        ]
+        ], ->
+
+            callback()
+            TaskManager.end 'Chat.prepareFromDatabase'
 
     prepareNew: (callback) ->
 
@@ -105,4 +110,131 @@ Chat = GLOBAL.Chat =
 
     start: ->
 
-        null
+        TaskManager.begin()
+
+        async.series [
+
+            (callback) ->
+
+                Database.db.collection('Chat').ensureIndex {time: -1}, callback
+
+            , (callback) ->
+
+                Database.db.collection('Chat').ensureIndex {'markup.player1.guid': 1}, callback
+
+            , (callback) ->
+
+                Database.db.collection('Chat').ensureIndex {'markup.portal1.guid': 1}, callback
+
+        ], ->
+            
+            taskList = []
+            taskList.push taskId for taskId of Chat.tasks
+
+            if taskList.length is 0
+                logger.info "[Broadcasts] Nothing to request"
+                TaskManager.end 'Chat.start'
+                return
+
+            logger.info "[Broadcasts] Begin requesting..."
+            Chat.request taskList[0]
+            TaskManager.end 'Chat.start'
+
+    request: (taskId, callback) ->
+
+        TaskManager.begin()
+
+        Chat.tasks[taskId].status = STATUS_PENDING
+
+        Database.db.collection('Chat._queue').update
+                _id:    new ObjectID(taskId)
+            ,
+                $set:
+                    status: STATUS_PENDING
+            , (err) ->
+
+                Request.add
+
+                    action: 'getPaginatedPlextsV2'
+                    data:   Chat.tasks[taskId].data
+                    onSuccess: (response) ->
+
+                        rec = response.result[0]
+                        insertMessage rec[0], rec[1], rec[2] #for rec in response.result
+
+                    onError: (err) ->
+
+                        logger.error "[Broadcasts] " + err
+                        #processErrorTileResponse tileIds, noop
+
+                    afterResponse: ->
+
+                        TaskManager.end 'Chat.request.callback'
+                        #checkTimeoutAndFailTiles()
+
+                        #logger.info "[Broadcasts] " +
+                        #    Math.round(Request.requested / Request.maxRequest * 100).toString() +
+                        #    "%\t[#{Request.requested}/#{Request.maxRequest}]" +
+                        #    "\t#{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
+
+                    beforeRequest: ->
+
+                        null
+
+###########################################
+# Database Queue
+
+dbQueue = async.queue (task, callback) ->
+
+    doc = task.data
+    doc._id = task.id
+    doc.time = task.timestamp
+
+    async.series [
+
+        (callback) ->
+        
+            Database.db.collection('Chat').insert doc, callback
+
+        , (callback) ->
+
+            # resove player names
+            if doc.markup.PLAYER1?
+
+                level = null
+
+                if doc.markup.TEXT1.plain is ' deployed an '
+                    level = parseInt doc.markup.TEXT2.plain.substr(1)
+
+                Agent.resolved doc.markup.PLAYER1.guid,
+                    name:  doc.markup.PLAYER1.plain
+                    team:  Agent.strToTeam(doc.markup.PLAYER1.team)
+                    level: level
+            
+    ], ->
+        callback()
+        TaskManager.end 'dbQueue.queue.callback'
+
+, Config.Database.MaxParallel
+
+insertMessage = (id, timestamp, data) ->
+
+    TaskManager.begin()
+
+    data2 = data.plext
+
+    # parse markup
+    markup = {}
+    count = {}
+
+    for m in data.plext.markup
+        count[m[0]] = 0 if not count[m[0]]?
+        count[m[0]]++
+        markup[m[0]+count[m[0]].toString()] = m[1]
+
+    data2.markup = markup
+
+    dbQueue.push
+        id:        id
+        timestamp: timestamp
+        data:      data2
