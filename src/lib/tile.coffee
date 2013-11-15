@@ -11,6 +11,9 @@ STATUS_FAIL         = 3
 STATUS_PANIC        = 4
 STATUS_COMPLETE     = 5
 
+request_max = 0
+request_done = 0
+
 TileBucket = GLOBAL.TileBucket = 
     
     bucket: []
@@ -62,6 +65,8 @@ TileBucket = GLOBAL.TileBucket =
         , (err) ->
             # onFinish
 
+            request_max++
+
             Request.add
 
                 action: 'getThinnedEntitiesV4'
@@ -79,9 +84,11 @@ TileBucket = GLOBAL.TileBucket =
 
                     checkTimeoutAndFailTiles()
 
+                    request_done++
+
                     logger.info "[Portals] " +
-                        Math.round(Request.requested / Request.maxRequest * 100).toString() +
-                        "%\t[#{Request.requested}/#{Request.maxRequest}]" +
+                        Math.round(request_done / request_max * 100).toString() +
+                        "%\t[#{request_done}/#{request_max}]" +
                         "\t#{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
 
                     TaskManager.end 'TileBucket.Request.afterResponseCallback'

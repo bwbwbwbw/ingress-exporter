@@ -37,7 +37,7 @@ Request = GLOBAL.Request =
         task = Request.generate options
 
         Request.queue.push task
-        Request.maxRequest++
+        #Request.maxRequest++
 
     post: (url, data, callback) ->
 
@@ -106,7 +106,7 @@ Request.queue = async.queue (task, callback) ->
 
     TaskManager.begin()
 
-    Request.activeRequests++
+    #Request.activeRequests++
     Request.post '/r/' + task.m, task.d, (error, response, body) ->
 
         if task.emitted?
@@ -115,8 +115,8 @@ Request.queue = async.queue (task, callback) ->
 
         task.emitted = true
 
-        Request.activeRequests--
-        Request.requested++
+        #Request.activeRequests--
+        #Request.requested++
 
         if error
             console.log error.stack
@@ -142,6 +142,6 @@ Request.queue = async.queue (task, callback) ->
 
 , Config.Request.MaxParallel
 
-Request.maxRequest = 0
-Request.requested = 0
-Request.activeRequests = 0
+#Request.maxRequest = 0
+#Request.requested = 0
+#Request.activeRequests = 0

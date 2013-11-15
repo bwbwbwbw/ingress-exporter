@@ -21,7 +21,6 @@
         });
       }
       Entity.entityCount++;
-      callback = callback || noop;
       if (data.portalV2 != null) {
         return createPortalEntity.apply(this, arguments);
       } else if (data.capturedRegion != null) {
@@ -30,7 +29,7 @@
         return createLinkEntity.apply(this, arguments);
       } else {
         logger.warn('Unknown entity type, id=' + id);
-        return callback();
+        return callback && callback();
       }
     }
   };
@@ -63,7 +62,7 @@
           });
         }
       }
-      return callback();
+      return callback && callback();
     });
   };
 

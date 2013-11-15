@@ -38,8 +38,7 @@
     add: function(options) {
       var task;
       task = Request.generate(options);
-      Request.queue.push(task);
-      return Request.maxRequest++;
+      return Request.queue.push(task);
     },
     post: function(url, data, callback) {
       TaskManager.begin();
@@ -100,15 +99,12 @@
 
   Request.queue = async.queue(function(task, callback) {
     TaskManager.begin();
-    Request.activeRequests++;
     return Request.post('/r/' + task.m, task.d, function(error, response, body) {
       if (task.emitted != null) {
         console.warn('[DEBUG] Ignored reemitted event');
         return;
       }
       task.emitted = true;
-      Request.activeRequests--;
-      Request.requested++;
       if (error) {
         console.log(error.stack);
         task.error && task.error(error);
@@ -129,11 +125,5 @@
       return TaskManager.end('Request.queue.postCallback');
     });
   }, Config.Request.MaxParallel);
-
-  Request.maxRequest = 0;
-
-  Request.requested = 0;
-
-  Request.activeRequests = 0;
 
 }).call(this);
