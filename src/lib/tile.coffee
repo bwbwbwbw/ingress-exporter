@@ -91,11 +91,7 @@ TileBucket = GLOBAL.TileBucket =
                         "%\t[#{request_done}/#{request_max}]" +
                         "\t#{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
 
-                    TaskManager.end 'TileBucket.Request.afterResponseCallback'
-
-                beforeRequest: ->
-
-                    null
+                    TaskManager.end 'TileBucket.request.afterResponseCallback'
 
             callback && callback()
 

@@ -84,10 +84,7 @@
             checkTimeoutAndFailTiles();
             request_done++;
             logger.info("[Portals] " + Math.round(request_done / request_max * 100).toString() + ("%\t[" + request_done + "/" + request_max + "]") + ("\t" + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
-            return TaskManager.end('TileBucket.Request.afterResponseCallback');
-          },
-          beforeRequest: function() {
-            return null;
+            return TaskManager.end('TileBucket.request.afterResponseCallback');
           }
         });
         return callback && callback();

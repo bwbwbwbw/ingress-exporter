@@ -1,5 +1,5 @@
 (function() {
-  var Chat, ObjectID, STATUS_COMPLETE, STATUS_ERROR, STATUS_NOTCOMPLETE, STATUS_PENDING, async, dbQueue, insertMessage;
+  var Chat, ObjectID, STATUS_COMPLETE, STATUS_ERROR, STATUS_NOTCOMPLETE, STATUS_PENDING, async, dbQueue, insertCount, insertMessage, messageCount, parseChatResponse, request_done, request_max;
 
   async = require('async');
 
@@ -12,6 +12,14 @@
   STATUS_NOTCOMPLETE = 2;
 
   STATUS_COMPLETE = 3;
+
+  request_max = 0;
+
+  request_done = 0;
+
+  messageCount = 0;
+
+  insertCount = 0;
 
   Chat = GLOBAL.Chat = {
     tasks: {},
@@ -132,8 +140,11 @@
           return;
         }
         logger.info("[Broadcasts] Begin requesting...");
-        Chat.request(taskList[0]);
-        return TaskManager.end('Chat.start');
+        return async.eachLimit(taskList, Config.Database.MaxParallel, function(taskId, callback) {
+          return Chat.request(taskId, callback);
+        }, function() {
+          return TaskManager.end('Chat.start');
+        });
       });
     },
     request: function(taskId, callback) {
@@ -146,24 +157,60 @@
           status: STATUS_PENDING
         }
       }, function(err) {
+        callback && callback();
+        request_max++;
         return Request.add({
           action: 'getPaginatedPlextsV2',
           data: Chat.tasks[taskId].data,
           onSuccess: function(response) {
-            var rec;
-            rec = response.result[0];
-            return insertMessage(rec[0], rec[1], rec[2]);
+            return parseChatResponse(taskId, response.result, noop);
           },
           onError: function(err) {
             return logger.error("[Broadcasts] " + err);
           },
           afterResponse: function() {
-            return TaskManager.end('Chat.request.callback');
-          },
-          beforeRequest: function() {
-            return null;
+            request_done++;
+            logger.info("[Broadcasts] " + Math.round(request_done / request_max * 100).toString() + ("%\t[" + request_done + "/" + request_max + "]") + ("\t" + messageCount + " messages (" + (dbQueue.length()) + " in buffer)"));
+            return TaskManager.end('Chat.request.afterResponseCallback');
           }
         });
+      });
+    }
+  };
+
+  parseChatResponse = function(taskId, response, callback) {
+    var maxTimestamp, rec, _i, _len;
+    TaskManager.begin();
+    for (_i = 0, _len = response.length; _i < _len; _i++) {
+      rec = response[_i];
+      insertMessage(rec[0], rec[1], rec[2]);
+    }
+    if (response.length < Config.Chat.FetchItemCount) {
+      delete Chat.tasks[taskId];
+      Chat.length--;
+      return Database.db.collection('Chat._queue').remove({
+        _id: new ObjectID(taskId)
+      }, {
+        single: true
+      }, function() {
+        callback();
+        return TaskManager.end('parseChatResponse.case1.callback');
+      });
+    } else {
+      maxTimestamp = parseInt(response[response.length - 1][1]) - 1;
+      Chat.tasks[taskId].data.maxTimestampMs = maxTimestamp;
+      Chat.tasks[taskId].status = STATUS_NOTCOMPLETE;
+      return Database.db.collection('Chat._queue').update({
+        _id: new ObjectID(taskId)
+      }, {
+        $set: {
+          status: STATUS_NOTCOMPLETE,
+          'data.maxTimestampMs': maxTimestamp
+        }
+      }, function() {
+        Chat.request(taskId);
+        callback();
+        return TaskManager.end('parseChatResponse.case2.callback');
       });
     }
   };
@@ -183,12 +230,13 @@
           if (doc.markup.TEXT1.plain === ' deployed an ') {
             level = parseInt(doc.markup.TEXT2.plain.substr(1));
           }
-          return Agent.resolved(doc.markup.PLAYER1.guid, {
+          Agent.resolved(doc.markup.PLAYER1.guid, {
             name: doc.markup.PLAYER1.plain,
             team: Agent.strToTeam(doc.markup.PLAYER1.team),
             level: level
           });
         }
+        return callback();
       }
     ], function() {
       callback();
@@ -199,6 +247,12 @@
   insertMessage = function(id, timestamp, data) {
     var count, data2, m, markup, _i, _len, _ref;
     TaskManager.begin();
+    if (insertCount % 100 === 0) {
+      Database.db.collection('Chat').count({}, function(err, count) {
+        return messageCount = count;
+      });
+    }
+    insertCount++;
     data2 = data.plext;
     markup = {};
     count = {};
