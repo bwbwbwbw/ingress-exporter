@@ -51,12 +51,14 @@ Chat = GLOBAL.Chat =
 
         , ->
 
-            Database.db.collection('Chat._data').update {_id: 'last_task'},
-                
+            Database.db.collection('Chat._data').update
+                _id: 'last_task'
+            ,    
                 $set:
                     timestamp: timestampMax
-
-            , {upsert: true}, (err) ->
+            ,
+                upsert: true
+            , (err) ->
 
                 logger.info "[Broadcasts] Created #{preparedTasks.length} tasks (all #{Chat.length} tasks)."
                 callback && callback.apply this, arguments

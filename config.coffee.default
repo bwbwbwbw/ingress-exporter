@@ -40,6 +40,11 @@ Config = GLOBAL.Config =
         MaxTraceTimespanMS: 30*24*60*60*1000   # continue task: max trace 30 days
         FetchItemCount:     300
 
+    PlayerLookup:
+
+        Max: 15
+        Min: 10
+    
     Database:
 
         ConnectString: 'localhost:27017/ingress?auto_reconnect'
