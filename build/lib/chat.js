@@ -216,32 +216,7 @@
   };
 
   dbQueue = async.queue(function(task, callback) {
-    var doc;
-    doc = task.data;
-    doc._id = task.id;
-    doc.time = task.timestamp;
-    return async.series([
-      function(callback) {
-        return Database.db.collection('Chat').insert(doc, callback);
-      }, function(callback) {
-        var level;
-        if (doc.markup.PLAYER1 != null) {
-          level = null;
-          if (doc.markup.TEXT1.plain === ' deployed an ') {
-            level = parseInt(doc.markup.TEXT2.plain.substr(1));
-          }
-          Agent.resolved(doc.markup.PLAYER1.guid, {
-            name: doc.markup.PLAYER1.plain,
-            team: Agent.strToTeam(doc.markup.PLAYER1.team),
-            level: level
-          });
-        }
-        return callback();
-      }
-    ], function() {
-      callback();
-      return TaskManager.end('dbQueue.queue.callback');
-    });
+    return task(callback);
   }, Config.Database.MaxParallel);
 
   insertMessage = function(id, timestamp, data) {
@@ -266,10 +241,33 @@
       markup[m[0] + count[m[0]].toString()] = m[1];
     }
     data2.markup = markup;
-    return dbQueue.push({
-      id: id,
-      timestamp: timestamp,
-      data: data2
+    return dbQueue.push(function(callback) {
+      var doc;
+      doc = data2;
+      doc._id = id;
+      doc.time = timestamp;
+      return async.series([
+        function(callback) {
+          return Database.db.collection('Chat').insert(doc, callback);
+        }, function(callback) {
+          var level;
+          if (doc.markup.PLAYER1 != null) {
+            level = null;
+            if (doc.markup.TEXT1.plain === ' deployed an ') {
+              level = parseInt(doc.markup.TEXT2.plain.substr(1));
+            }
+            Agent.resolved(doc.markup.PLAYER1.guid, {
+              name: doc.markup.PLAYER1.plain,
+              team: Agent.strToTeam(doc.markup.PLAYER1.team),
+              level: level
+            });
+          }
+          return callback();
+        }
+      ], function() {
+        callback();
+        return TaskManager.end('dbQueue.queue.callback');
+      });
     });
   };
 
