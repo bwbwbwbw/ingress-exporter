@@ -5,6 +5,17 @@ var LEVEL_TO_TILES_PER_EDGE = [65536, 65536, 16384, 16384, 4096, 1536, 1024, 256
 
 var Utils = GLOBAL.Utils = {
 
+    isSystemPlayer: function(guid) {
+
+        switch (guid) {
+            case '00000000000000000000000000000001.c':
+            case '00000000000000000000000000000002.c':
+                return true;
+            default:
+                return false;
+        }
+    },
+
     requestDataMunge: function(data, activeMunge) {
 
         function munge(obj) {
