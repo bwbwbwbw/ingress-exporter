@@ -258,6 +258,8 @@ processSuccessTileResponse = (response, tileIds) ->
 
         TaskManager.begin()
         Database.db.collection('Tiles').update {_id:tileId}, updater, TaskManager.end
+    
+    Agent.resolve()
 
 processErrorTileResponse = (tileIds, callback) ->
 

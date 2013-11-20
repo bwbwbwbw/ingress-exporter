@@ -197,13 +197,12 @@
   };
 
   processSuccessTileResponse = function(response, tileIds) {
-    var entity, entityCount, m, tileId, tileValue, updater, _i, _len, _ref, _ref1, _results;
+    var entity, entityCount, m, tileId, tileValue, updater, _i, _len, _ref, _ref1;
     if ((response != null ? (_ref = response.result) != null ? _ref.map : void 0 : void 0) == null) {
       processErrorTileResponse(tileIds, noop);
       return;
     }
     m = response.result.map;
-    _results = [];
     for (tileId in m) {
       tileValue = m[tileId];
       entityCount = 0;
@@ -245,11 +244,11 @@
         updater.$set.entityCount = entityCount;
       }
       TaskManager.begin();
-      _results.push(Database.db.collection('Tiles').update({
+      Database.db.collection('Tiles').update({
         _id: tileId
-      }, updater, TaskManager.end));
+      }, updater, TaskManager.end);
     }
-    return _results;
+    return Agent.resolve();
   };
 
   processErrorTileResponse = function(tileIds, callback) {
