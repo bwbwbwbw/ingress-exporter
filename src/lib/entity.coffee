@@ -49,6 +49,10 @@ Entity = GLOBAL.Entity =
             _id: true
         ).toArray (err, portals) ->
 
+            if err
+                callback err
+                return
+
             requestPortalDetail po._id for po in portals if portals
             callback()
 
@@ -107,18 +111,7 @@ requestPortalDetail = (guid) ->
             , noop
 
             # resolve agent information
-            
-            agentTeam = Agent.strToTeam response.controllingTeam.team
-
-            for resonator in response.resonatorArray.resonators
-
-                # consider ADA Reflector/Jarvis Virus?
-                
-                if resonator?
-
-                    Agent.resolved resonator.ownerGuid,
-                        level: resonator.level
-                        team:  agentTeam
+            Agent.resolveFromPortalDetail response
 
         onError: (err) ->
 

@@ -50,6 +50,10 @@
         _id: true
       }).toArray(function(err, portals) {
         var po, _i, _len;
+        if (err) {
+          callback(err);
+          return;
+        }
         if (portals) {
           for (_i = 0, _len = portals.length; _i < _len; _i++) {
             po = portals[_i];
@@ -104,27 +108,12 @@
         guid: guid
       },
       onSuccess: function(response) {
-        var agentTeam, resonator, _i, _len, _ref, _results;
         Database.db.collection('Portals').update({
           _id: guid
         }, {
           $set: response
         }, noop);
-        agentTeam = Agent.strToTeam(response.controllingTeam.team);
-        _ref = response.resonatorArray.resonators;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          resonator = _ref[_i];
-          if (resonator != null) {
-            _results.push(Agent.resolved(resonator.ownerGuid, {
-              level: resonator.level,
-              team: agentTeam
-            }));
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
+        return Agent.resolveFromPortalDetail(response);
       },
       onError: function(err) {
         return logger.error("[Details] " + err);

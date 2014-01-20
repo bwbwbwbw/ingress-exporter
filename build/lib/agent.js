@@ -31,6 +31,24 @@
     strToTeam: function(val) {
       return StrTeamMapping[val];
     },
+    resolveFromPortalDetail: function(portal) {
+      var agentTeam, resonator, _i, _len, _ref, _results;
+      agentTeam = Agent.strToTeam(portal.controllingTeam.team);
+      _ref = portal.resonatorArray.resonators;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        resonator = _ref[_i];
+        if (resonator != null) {
+          _results.push(Agent.resolved(resonator.ownerGuid, {
+            level: resonator.level,
+            team: agentTeam
+          }));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    },
     resolved: function(agentId, data) {
       var need_update;
       need_update = false;
@@ -72,6 +90,32 @@
           });
         });
       }
+    },
+    _resolveDatabase: function(callback) {
+      return Database.db.collection('Portals').find({
+        team: {
+          $ne: 'NEUTRAL'
+        },
+        resonatorArray: {
+          $exists: true
+        }
+      }, {
+        resonatorArray: true,
+        controllingTeam: true
+      }).toArray(function(err, portals) {
+        var portal, _i, _len;
+        if (err) {
+          callback(err);
+          return;
+        }
+        if (portals != null) {
+          for (_i = 0, _len = portals.length; _i < _len; _i++) {
+            portal = portals[_i];
+            Agent.resolveFromPortalDetail(portal);
+          }
+        }
+        return callback();
+      });
     }
   };
 

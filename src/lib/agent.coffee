@@ -26,6 +26,20 @@ Agent = GLOBAL.Agent =
 
         StrTeamMapping[val]
 
+    resolveFromPortalDetail: (portal) ->
+
+        agentTeam = Agent.strToTeam portal.controllingTeam.team
+
+        for resonator in portal.resonatorArray.resonators
+
+            # consider ADA Reflector/Jarvis Virus?
+            
+            if resonator?
+
+                Agent.resolved resonator.ownerGuid,
+                    level: resonator.level
+                    team:  agentTeam
+
     resolved: (agentId, data) ->
 
         # name has been resolved as agentId
@@ -70,6 +84,26 @@ Agent = GLOBAL.Agent =
 
                     callback()
                     TaskManager.end 'Agent.resolved.update.callback'
+        
+    _resolveDatabase: (callback) ->
+
+        Database.db.collection('Portals').find(
+            team:
+                $ne: 'NEUTRAL'
+            resonatorArray:
+                $exists: true
+        ,
+            resonatorArray:  true
+            controllingTeam: true
+        ).toArray (err, portals) ->
+
+            if err
+                callback err
+                return
+
+            # TODO: reduce memory usage
+            Agent.resolveFromPortalDetail portal for portal in portals if portals?
+            callback()
 
 dbQueue = async.queue (task, callback) ->
 
