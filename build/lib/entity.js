@@ -108,6 +108,10 @@
         guid: guid
       },
       onSuccess: function(response) {
+        var _ref;
+        if (((_ref = response.captured) != null ? _ref.capturedTime : void 0) != null) {
+          response.captured.capturedTime = parseInt(response.captured.capturedTime);
+        }
         Database.db.collection('Portals').update({
           _id: guid
         }, {

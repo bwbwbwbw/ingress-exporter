@@ -104,6 +104,9 @@ requestPortalDetail = (guid) ->
             guid: guid
         onSuccess: (response) ->
 
+            if response.captured?.capturedTime?
+                response.captured.capturedTime = parseInt response.captured.capturedTime
+
             Database.db.collection('Portals').update
                 _id: guid
             ,
