@@ -70,7 +70,7 @@
         }, callback);
       }, function(err) {
         request_max++;
-        Request.add({
+        Request.push({
           action: 'getThinnedEntities',
           data: data,
           onSuccess: function(response) {

@@ -35,7 +35,7 @@
         callback();
         return;
       }
-      return Request.add({
+      return Request.unshift({
         action: 'getPlayersByGuids',
         data: {
           guids: guids

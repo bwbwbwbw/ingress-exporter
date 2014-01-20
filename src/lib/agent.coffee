@@ -35,7 +35,7 @@ PlayerLookup = GLOBAL.PlayerLookup =
             callback()
             return
 
-        Request.add
+        Request.unshift
 
             action:  'getPlayersByGuids'
             data:

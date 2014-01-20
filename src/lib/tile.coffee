@@ -68,7 +68,7 @@ TileBucket = GLOBAL.TileBucket =
 
             request_max++
 
-            Request.add
+            Request.push
 
                 action: 'getThinnedEntities'
                 data:   data
