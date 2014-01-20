@@ -1,6 +1,8 @@
 request_max = 0
 request_done = 0
 
+requested_guid = {}
+
 Entity = GLOBAL.Entity = 
     
     counter: 
@@ -86,6 +88,10 @@ createLinkEntity = (id, timestamp, data, callback) ->
     createEntity 'Links', id, timestamp, data, callback
 
 requestPortalDetail = (guid) ->
+
+    # TODO: WTF?
+    return if requested_guid[guid]?
+    requested_guid[guid] = true
 
     TaskManager.begin()
 

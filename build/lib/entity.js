@@ -1,9 +1,11 @@
 (function() {
-  var Entity, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, requestPortalDetail, request_done, request_max;
+  var Entity, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, requestPortalDetail, request_done, request_max, requested_guid;
 
   request_max = 0;
 
   request_done = 0;
+
+  requested_guid = {};
 
   Entity = GLOBAL.Entity = {
     counter: {
@@ -90,6 +92,10 @@
   };
 
   requestPortalDetail = function(guid) {
+    if (requested_guid[guid] != null) {
+      return;
+    }
+    requested_guid[guid] = true;
     TaskManager.begin();
     request_max++;
     return Request.unshift({
