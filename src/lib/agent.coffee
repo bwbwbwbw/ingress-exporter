@@ -1,3 +1,5 @@
+async = require 'async'
+
 TEAM_ENLIGHTENED = 1
 TEAM_RESISTANCE = 2
 
@@ -21,7 +23,7 @@ PlayerLookup = GLOBAL.PlayerLookup =
         if PlayerLookup.guids.length >= Config.PlayerLookup.Max or not playerId?
 
             PlayerLookup.request PlayerLookup.guids, callback
-            PLayerLookup.guids = []
+            PlayerLookup.guids = []
 
         else
 
@@ -132,12 +134,18 @@ Agent = GLOBAL.Agent =
 
     resolve: (agentId) ->
 
-        if agentId
-            return if Agent.data[agentId]?.name?
-            return if Utils.isSystemPlayer agentId
-            TaskManager.begin()
+        try
 
-        PlayerLookup.enqueue agentId, noop
+            if agentId
+                return if Agent.data[agentId]?.name?
+                return if Utils.isSystemPlayer agentId
+                TaskManager.begin()
+
+            PlayerLookup.enqueue agentId, noop
+
+        catch err
+
+            logger.error "[PlayerLookup] Internal error while resolving agent_id=#{agentId}: #{err.message}."
 
 dbQueue = async.queue (task, callback) ->
 

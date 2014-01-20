@@ -1,5 +1,7 @@
 (function() {
-  var Agent, PlayerLookup, StrTeamMapping, TEAM_ENLIGHTENED, TEAM_RESISTANCE, dbQueue;
+  var Agent, PlayerLookup, StrTeamMapping, TEAM_ENLIGHTENED, TEAM_RESISTANCE, async, dbQueue;
+
+  async = require('async');
 
   TEAM_ENLIGHTENED = 1;
 
@@ -23,7 +25,7 @@
       }
       if (PlayerLookup.guids.length >= Config.PlayerLookup.Max || (playerId == null)) {
         PlayerLookup.request(PlayerLookup.guids, callback);
-        return PLayerLookup.guids = [];
+        return PlayerLookup.guids = [];
       } else {
         return callback && callback();
       }
@@ -135,17 +137,22 @@
       }
     },
     resolve: function(agentId) {
-      var _ref;
-      if (agentId) {
-        if (((_ref = Agent.data[agentId]) != null ? _ref.name : void 0) != null) {
-          return;
+      var err, _ref;
+      try {
+        if (agentId) {
+          if (((_ref = Agent.data[agentId]) != null ? _ref.name : void 0) != null) {
+            return;
+          }
+          if (Utils.isSystemPlayer(agentId)) {
+            return;
+          }
+          TaskManager.begin();
         }
-        if (Utils.isSystemPlayer(agentId)) {
-          return;
-        }
-        TaskManager.begin();
+        return PlayerLookup.enqueue(agentId, noop);
+      } catch (_error) {
+        err = _error;
+        return logger.error("[PlayerLookup] Internal error while resolving agent_id=" + agentId + ": " + err.message + ".");
       }
-      return PlayerLookup.enqueue(agentId, noop);
     }
   };
 
