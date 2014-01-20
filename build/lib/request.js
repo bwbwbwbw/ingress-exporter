@@ -35,10 +35,15 @@
         response: options.afterResponse
       };
     },
-    add: function(options) {
+    push: function(options) {
       var task;
       task = Request.generate(options);
       return Request.queue.push(task);
+    },
+    unshift: function(options) {
+      var task;
+      task = Request.generate(options);
+      return Request.queue.unshift(task);
     },
     post: function(url, data, callback) {
       TaskManager.begin();
@@ -106,7 +111,6 @@
       }
       task.emitted = true;
       if (error) {
-        console.log(error.stack);
         task.error && task.error(error);
         task.response && task.response(error);
         callback();

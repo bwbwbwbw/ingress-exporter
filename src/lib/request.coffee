@@ -32,12 +32,15 @@ Request = GLOBAL.Request =
             response: options.afterResponse
         }
 
-    add: (options) ->
+    push: (options) ->
 
         task = Request.generate options
-
         Request.queue.push task
-        #Request.maxRequest++
+    
+    unshift: (options) ->
+
+        task = Request.generate options
+        Request.queue.unshift task
 
     post: (url, data, callback) ->
 
@@ -106,7 +109,6 @@ Request.queue = async.queue (task, callback) ->
 
     TaskManager.begin()
 
-    #Request.activeRequests++
     Request.post '/r/' + task.m, task.d, (error, response, body) ->
 
         if task.emitted?
@@ -115,11 +117,7 @@ Request.queue = async.queue (task, callback) ->
 
         task.emitted = true
 
-        #Request.activeRequests--
-        #Request.requested++
-
         if error
-            console.log error.stack
             task.error && task.error error
             task.response && task.response error
 
@@ -141,7 +139,3 @@ Request.queue = async.queue (task, callback) ->
         TaskManager.end 'Request.queue.postCallback'
 
 , Config.Request.MaxParallel
-
-#Request.maxRequest = 0
-#Request.requested = 0
-#Request.activeRequests = 0
