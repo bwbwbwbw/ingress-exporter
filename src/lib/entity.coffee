@@ -21,14 +21,14 @@ Entity = GLOBAL.Entity =
 
         Entity.entityCount++
 
-        if data.portalV2?
+        if data.type is 'portal'
             createPortalEntity.apply this, arguments
-        else if data.capturedRegion?
+        else if data.type is 'region'
             createFieldEntity.apply this, arguments
-        else if data.edge?
+        else if data.type is 'edge'
             createLinkEntity.apply this, arguments
         else
-            logger.warn 'Unknown entity type, id=' + id
+            logger.warn "Unknown entity type, id=#{id}, type=#{data.type}"
             callback && callback()
 
 createEntity = (collection, id, timestamp, data, callback) ->
@@ -51,6 +51,8 @@ createEntity = (collection, id, timestamp, data, callback) ->
 
 createPortalEntity = (id, timestamp, data, callback) ->
 
+    createEntity 'Portals', id, timestamp, data, callback
+    ###
     createEntity 'Portals', id, timestamp, data, ->
 
         # resolve agents
@@ -69,6 +71,7 @@ createPortalEntity = (id, timestamp, data, callback) ->
                         level: resonator.level
 
         callback && callback()
+    ###
 
 createFieldEntity = (id, timestamp, data, callback) ->
 

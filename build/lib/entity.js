@@ -21,14 +21,14 @@
         });
       }
       Entity.entityCount++;
-      if (data.portalV2 != null) {
+      if (data.type === 'portal') {
         return createPortalEntity.apply(this, arguments);
-      } else if (data.capturedRegion != null) {
+      } else if (data.type === 'region') {
         return createFieldEntity.apply(this, arguments);
-      } else if (data.edge != null) {
+      } else if (data.type === 'edge') {
         return createLinkEntity.apply(this, arguments);
       } else {
-        logger.warn('Unknown entity type, id=' + id);
+        logger.warn("Unknown entity type, id=" + id + ", type=" + data.type);
         return callback && callback();
       }
     }
@@ -50,23 +50,28 @@
   };
 
   createPortalEntity = function(id, timestamp, data, callback) {
-    return createEntity('Portals', id, timestamp, data, function() {
-      var resonator, _i, _len, _ref;
-      if (data.captured != null) {
-        Agent.resolve(data.captured.capturingPlayerId);
-        _ref = data.resonatorArray.resonators;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          resonator = _ref[_i];
-          if (!Utils.isSystemPlayer(resonator.ownerGuid)) {
-            Agent.resolve(resonator.ownerGuid);
-            Agent.resolved(resonator.ownerGuid, {
-              level: resonator.level
-            });
-          }
-        }
-      }
-      return callback && callback();
-    });
+    return createEntity('Portals', id, timestamp, data, callback);
+    /*
+    createEntity 'Portals', id, timestamp, data, ->
+    
+        # resolve agents
+        if data.captured?
+    
+            Agent.resolve data.captured.capturingPlayerId
+    
+            for resonator in data.resonatorArray.resonators
+    
+                if not Utils.isSystemPlayer resonator.ownerGuid
+    
+                    Agent.resolve resonator.ownerGuid
+                    
+                    # consider ADA Reflector/Jarvis Virus?
+                    Agent.resolved resonator.ownerGuid,
+                        level: resonator.level
+    
+        callback && callback()
+    */
+
   };
 
   createFieldEntity = function(id, timestamp, data, callback) {

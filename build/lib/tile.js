@@ -71,14 +71,24 @@
       }, function(err) {
         request_max++;
         Request.add({
-          action: 'getThinnedEntitiesV4',
+          action: 'getThinnedEntities',
           data: data,
           onSuccess: function(response) {
-            return processSuccessTileResponse(response, tileIds);
+            try {
+              return processSuccessTileResponse(response, tileIds);
+            } catch (_error) {
+              err = _error;
+              return logger.error("[Portals] Internal error at TileBucket.request.onSuccessCallback: " + err.message + ".");
+            }
           },
           onError: function(err) {
             logger.error("[Portals] " + err);
-            return processErrorTileResponse(tileIds, noop);
+            try {
+              return processErrorTileResponse(tileIds, noop);
+            } catch (_error) {
+              err = _error;
+              return logger.error("[Portals] Internal error at TileBucket.request.onErrorCallback: " + err.message + ".");
+            }
           },
           afterResponse: function() {
             checkTimeoutAndFailTiles();
@@ -149,13 +159,17 @@
     prepareNew: function(callback) {
       var bounds, tileBounds, _i, _len;
       logger.info("[Portals] Preparing new: [" + Config.Region.SouthWest.Lat + "," + Config.Region.SouthWest.Lng + "]-[" + Config.Region.NorthEast.Lat + "," + Config.Region.NorthEast.Lng + "], MinPortalLevel=" + Config.MinPortalLevel);
+      TaskManager.begin();
       tileBounds = Tile.calculateBounds();
       for (_i = 0, _len = tileBounds.length; _i < _len; _i++) {
         bounds = tileBounds[_i];
         Tile.length++;
         Tile.bounds[bounds.id] = bounds;
       }
-      return Tile._prepareTiles(callback);
+      return Tile._prepareTiles(function() {
+        callback();
+        return TaskManager.end('Tile.prepareNew.callback');
+      });
     },
     _prepareTiles: function(callback) {
       logger.info("[Portals] Prepared " + Tile.length + " tiles");
@@ -197,12 +211,13 @@
   };
 
   processSuccessTileResponse = function(response, tileIds) {
-    var entity, entityCount, m, tileId, tileValue, updater, _i, _len, _ref, _ref1;
+    var entity, entityCount, m, tileId, tileValue, updater, _i, _len, _ref, _ref1, _results;
     if ((response != null ? (_ref = response.result) != null ? _ref.map : void 0 : void 0) == null) {
       processErrorTileResponse(tileIds, noop);
       return;
     }
     m = response.result.map;
+    _results = [];
     for (tileId in m) {
       tileValue = m[tileId];
       entityCount = 0;
@@ -244,11 +259,11 @@
         updater.$set.entityCount = entityCount;
       }
       TaskManager.begin();
-      Database.db.collection('Tiles').update({
+      _results.push(Database.db.collection('Tiles').update({
         _id: tileId
-      }, updater, TaskManager.end);
+      }, updater, TaskManager.end));
     }
-    return Agent.resolve();
+    return _results;
   };
 
   processErrorTileResponse = function(tileIds, callback) {

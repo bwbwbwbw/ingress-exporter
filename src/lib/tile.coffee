@@ -46,7 +46,8 @@ TileBucket = GLOBAL.TileBucket =
         TileBucket.requestCount++
         requestId = TileBucket.requestCount
 
-        data = quadKeys: tileList
+        data = 
+            quadKeys: tileList
 
         TaskManager.begin()
 
@@ -69,16 +70,23 @@ TileBucket = GLOBAL.TileBucket =
 
             Request.add
 
-                action: 'getThinnedEntitiesV4'
+                action: 'getThinnedEntities'
                 data:   data
                 onSuccess: (response) ->
 
-                    processSuccessTileResponse response, tileIds
+                    try
+                        processSuccessTileResponse response, tileIds
+                    catch err
+                        logger.error "[Portals] Internal error at TileBucket.request.onSuccessCallback: #{err.message}."
 
                 onError: (err) ->
 
                     logger.error "[Portals] " + err
-                    processErrorTileResponse tileIds, noop
+
+                    try
+                        processErrorTileResponse tileIds, noop
+                    catch err
+                        logger.error "[Portals] Internal error at TileBucket.request.onErrorCallback: #{err.message}."
 
                 afterResponse: ->
 
@@ -162,12 +170,16 @@ Tile = GLOBAL.Tile =
 
         logger.info "[Portals] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
         
+        TaskManager.begin()
+
         tileBounds = Tile.calculateBounds()
         for bounds in tileBounds
             Tile.length++
             Tile.bounds[bounds.id] = bounds
 
-        Tile._prepareTiles callback
+        Tile._prepareTiles ->
+            callback()
+            TaskManager.end 'Tile.prepareNew.callback'
 
     _prepareTiles: (callback) ->
 
@@ -259,7 +271,7 @@ processSuccessTileResponse = (response, tileIds) ->
         TaskManager.begin()
         Database.db.collection('Tiles').update {_id:tileId}, updater, TaskManager.end
     
-    Agent.resolve()
+    #Agent.resolve()
 
 processErrorTileResponse = (tileIds, callback) ->
 
