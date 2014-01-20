@@ -36,6 +36,22 @@ Entity = GLOBAL.Entity =
             logger.warn "Unknown entity type, id=#{id}, type=#{data.type}"
             callback && callback()
 
+    requestMissingPortals: (callback) ->
+
+        # request missing portal details
+
+        Database.db.collection('Portals').find(
+            team:
+                $ne: 'NEUTRAL'
+            resonatorArray:
+                $exists: false
+        ,
+            _id: true
+        ).toArray (err, portals) ->
+
+            requestPortalDetail po._id for po in portals if portals
+            callback()
+
 createEntity = (collection, id, timestamp, data, callback) ->
 
     data.time = timestamp
@@ -58,26 +74,6 @@ createPortalEntity = (id, timestamp, data, callback) ->
 
     createEntity 'Portals', id, timestamp, data, callback
     requestPortalDetail id if data.team isnt 'NEUTRAL'
-    ###
-    createEntity 'Portals', id, timestamp, data, ->
-
-        # resolve agents
-        if data.captured?
-
-            Agent.resolve data.captured.capturingPlayerId
-
-            for resonator in data.resonatorArray.resonators
-
-                if not Utils.isSystemPlayer resonator.ownerGuid
-
-                    Agent.resolve resonator.ownerGuid
-                    
-                    # consider ADA Reflector/Jarvis Virus?
-                    Agent.resolved resonator.ownerGuid,
-                        level: resonator.level
-
-        callback && callback()
-    ###
 
 createFieldEntity = (id, timestamp, data, callback) ->
 
@@ -109,6 +105,20 @@ requestPortalDetail = (guid) ->
             ,
                 $set: response
             , noop
+
+            # resolve agent information
+            
+            agentTeam = Agent.strToTeam response.controllingTeam.team
+
+            for resonator in response.resonatorArray.resonators
+
+                # consider ADA Reflector/Jarvis Virus?
+                
+                if resonator?
+
+                    Agent.resolved resonator.ownerGuid,
+                        level: resonator.level
+                        team:  agentTeam
 
         onError: (err) ->
 

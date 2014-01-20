@@ -36,14 +36,30 @@ require './lib/mungedetector.js'
 #######################
 # bootstrap
 argv = require('optimist').argv
+async = require('async')
 
 taskCount = 0
 
 TaskManager.begin()
 
-MungeDetector.detect ->
+async.series [
 
-    Agent.initFromDatabase ->
+    (callback) ->
+
+        MungeDetector.detect callback
+
+    , (callback) ->
+
+        Agent.initFromDatabase callback
+
+    , (callback) ->
+
+        if argv.portals
+            Entity.requestMissingPortals callback
+        else
+            callback()
+
+    , (callback) ->
 
         if argv.new or argv.n
             if argv.portals
@@ -60,6 +76,11 @@ MungeDetector.detect ->
                 Chat.prepareFromDatabase Chat.start
                 taskCount++
 
-        TaskManager.end 'AppMain.callback'
+        callback()
 
-    #process.exit 0 if taskCount is 0
+    , (callback) ->
+
+        TaskManager.end 'AppMain.callback'
+        callback()
+
+]

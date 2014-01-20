@@ -37,6 +37,27 @@
         logger.warn("Unknown entity type, id=" + id + ", type=" + data.type);
         return callback && callback();
       }
+    },
+    requestMissingPortals: function(callback) {
+      return Database.db.collection('Portals').find({
+        team: {
+          $ne: 'NEUTRAL'
+        },
+        resonatorArray: {
+          $exists: false
+        }
+      }, {
+        _id: true
+      }).toArray(function(err, portals) {
+        var po, _i, _len;
+        if (portals) {
+          for (_i = 0, _len = portals.length; _i < _len; _i++) {
+            po = portals[_i];
+            requestPortalDetail(po._id);
+          }
+        }
+        return callback();
+      });
     }
   };
 
@@ -60,27 +81,6 @@
     if (data.team !== 'NEUTRAL') {
       return requestPortalDetail(id);
     }
-    /*
-    createEntity 'Portals', id, timestamp, data, ->
-    
-        # resolve agents
-        if data.captured?
-    
-            Agent.resolve data.captured.capturingPlayerId
-    
-            for resonator in data.resonatorArray.resonators
-    
-                if not Utils.isSystemPlayer resonator.ownerGuid
-    
-                    Agent.resolve resonator.ownerGuid
-                    
-                    # consider ADA Reflector/Jarvis Virus?
-                    Agent.resolved resonator.ownerGuid,
-                        level: resonator.level
-    
-        callback && callback()
-    */
-
   };
 
   createFieldEntity = function(id, timestamp, data, callback) {
@@ -104,11 +104,27 @@
         guid: guid
       },
       onSuccess: function(response) {
-        return Database.db.collection('Portals').update({
+        var agentTeam, resonator, _i, _len, _ref, _results;
+        Database.db.collection('Portals').update({
           _id: guid
         }, {
           $set: response
         }, noop);
+        agentTeam = Agent.strToTeam(response.controllingTeam.team);
+        _ref = response.resonatorArray.resonators;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          resonator = _ref[_i];
+          if (resonator != null) {
+            _results.push(Agent.resolved(resonator.ownerGuid, {
+              level: resonator.level,
+              team: agentTeam
+            }));
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
       },
       onError: function(err) {
         return logger.error("[Details] " + err);

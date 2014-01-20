@@ -1,5 +1,5 @@
 (function() {
-  var argv, exitProcess, logger, noop, taskCount;
+  var argv, async, exitProcess, logger, noop, taskCount;
 
   logger = GLOBAL.logger = require('winston');
 
@@ -49,12 +49,24 @@
 
   argv = require('optimist').argv;
 
+  async = require('async');
+
   taskCount = 0;
 
   TaskManager.begin();
 
-  MungeDetector.detect(function() {
-    return Agent.initFromDatabase(function() {
+  async.series([
+    function(callback) {
+      return MungeDetector.detect(callback);
+    }, function(callback) {
+      return Agent.initFromDatabase(callback);
+    }, function(callback) {
+      if (argv.portals) {
+        return Entity.requestMissingPortals(callback);
+      } else {
+        return callback();
+      }
+    }, function(callback) {
       if (argv["new"] || argv.n) {
         if (argv.portals) {
           Tile.prepareNew(Tile.start);
@@ -74,8 +86,11 @@
           taskCount++;
         }
       }
-      return TaskManager.end('AppMain.callback');
-    });
-  });
+      return callback();
+    }, function(callback) {
+      TaskManager.end('AppMain.callback');
+      return callback();
+    }
+  ]);
 
 }).call(this);
