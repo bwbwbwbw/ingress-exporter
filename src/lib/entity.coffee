@@ -1,3 +1,6 @@
+request_max = 0
+request_done = 0
+
 Entity = GLOBAL.Entity = 
     
     counter: 
@@ -52,6 +55,7 @@ createEntity = (collection, id, timestamp, data, callback) ->
 createPortalEntity = (id, timestamp, data, callback) ->
 
     createEntity 'Portals', id, timestamp, data, callback
+    requestPortalDetail id if data.team isnt 'NEUTRAL'
     ###
     createEntity 'Portals', id, timestamp, data, ->
 
@@ -80,3 +84,36 @@ createFieldEntity = (id, timestamp, data, callback) ->
 createLinkEntity = (id, timestamp, data, callback) ->
 
     createEntity 'Links', id, timestamp, data, callback
+
+requestPortalDetail = (guid) ->
+
+    TaskManager.begin()
+
+    request_max++
+
+    Request.unshift
+
+        action: 'getPortalDetails'
+        data:
+            guid: guid
+        onSuccess: (response) ->
+
+            Database.db.collection('Portals').update
+                _id: guid
+            ,
+                $set: response
+            , noop
+
+        onError: (err) ->
+
+            logger.error "[Details] " + err
+
+        afterResponse: ->
+
+            request_done++
+
+            logger.info "[Details] " +
+                Math.round(request_done / request_max * 100).toString() +
+                "%\t[#{request_done}/#{request_max}]"
+
+            TaskManager.end 'Entity.requestPortalDetail.afterResponseCallback'

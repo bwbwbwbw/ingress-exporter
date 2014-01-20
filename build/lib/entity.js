@@ -1,5 +1,9 @@
 (function() {
-  var Entity, createEntity, createFieldEntity, createLinkEntity, createPortalEntity;
+  var Entity, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, requestPortalDetail, request_done, request_max;
+
+  request_max = 0;
+
+  request_done = 0;
 
   Entity = GLOBAL.Entity = {
     counter: {
@@ -50,7 +54,10 @@
   };
 
   createPortalEntity = function(id, timestamp, data, callback) {
-    return createEntity('Portals', id, timestamp, data, callback);
+    createEntity('Portals', id, timestamp, data, callback);
+    if (data.team !== 'NEUTRAL') {
+      return requestPortalDetail(id);
+    }
     /*
     createEntity 'Portals', id, timestamp, data, ->
     
@@ -80,6 +87,32 @@
 
   createLinkEntity = function(id, timestamp, data, callback) {
     return createEntity('Links', id, timestamp, data, callback);
+  };
+
+  requestPortalDetail = function(guid) {
+    TaskManager.begin();
+    request_max++;
+    return Request.unshift({
+      action: 'getPortalDetails',
+      data: {
+        guid: guid
+      },
+      onSuccess: function(response) {
+        return Database.db.collection('Portals').update({
+          _id: guid
+        }, {
+          $set: response
+        }, noop);
+      },
+      onError: function(err) {
+        return logger.error("[Details] " + err);
+      },
+      afterResponse: function() {
+        request_done++;
+        logger.info("[Details] " + Math.round(request_done / request_max * 100).toString() + ("%\t[" + request_done + "/" + request_max + "]"));
+        return TaskManager.end('Entity.requestPortalDetail.afterResponseCallback');
+      }
+    });
   };
 
 }).call(this);
