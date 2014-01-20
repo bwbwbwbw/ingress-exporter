@@ -1,5 +1,5 @@
 (function() {
-  var Agent, PlayerLookup, StrTeamMapping, TEAM_ENLIGHTENED, TEAM_RESISTANCE, async, dbQueue;
+  var Agent, StrTeamMapping, TEAM_ENLIGHTENED, TEAM_RESISTANCE, async, dbQueue;
 
   async = require('async');
 
@@ -10,63 +10,6 @@
   StrTeamMapping = {
     ENLIGHTENED: TEAM_ENLIGHTENED,
     RESISTANCE: TEAM_RESISTANCE
-  };
-
-  PlayerLookup = GLOBAL.PlayerLookup = {
-    guids: [],
-    resolving: {},
-    enqueue: function(playerId, callback) {
-      if (playerId != null) {
-        if (PlayerLookup.resolving[playerId] != null) {
-          return;
-        }
-        PlayerLookup.guids.push(playerId);
-        PlayerLookup.resolving[playerId] = true;
-      }
-      if (PlayerLookup.guids.length >= Config.PlayerLookup.Max || (playerId == null)) {
-        PlayerLookup.request(PlayerLookup.guids, callback);
-        return PlayerLookup.guids = [];
-      } else {
-        return callback && callback();
-      }
-    },
-    request: function(guids, callback) {
-      if (guids.length === 0) {
-        callback();
-        return;
-      }
-      return Request.unshift({
-        action: 'getPlayersByGuids',
-        data: {
-          guids: guids
-        },
-        onSuccess: function(response) {
-          return console.log(response);
-        },
-        onError: function(err) {
-          logger.error("[PlayerLookup] " + err);
-          TaskManager.begin();
-          return setTimeout(function() {
-            var guid, _i, _len;
-            for (_i = 0, _len = guids.length; _i < _len; _i++) {
-              guid = guids[_i];
-              PlayerLookup.enqueue(guid, noop);
-            }
-            return TaskManager.end('PlayerLookup.request.onErrorTimeoutCallback');
-          }, 1000);
-        },
-        afterResponse: function() {
-          var guid, _i, _len, _results;
-          _results = [];
-          for (_i = 0, _len = guids.length; _i < _len; _i++) {
-            guid = guids[_i];
-            TaskManager.end('PlayerLookup.request.afterResponseCallback');
-            _results.push(delete PlayerLookup.resolving[guid]);
-          }
-          return _results;
-        }
-      });
-    }
   };
 
   Agent = GLOBAL.Agent = {
@@ -94,15 +37,10 @@
       if (Agent.data[agentId] == null) {
         need_update = true;
         Agent.data[agentId] = {
-          name: null,
           team: null,
           level: 0,
           inUpdateProgress: false
         };
-      }
-      if ((data.name != null) && Agent.data[agentId].name !== data.name) {
-        need_update = true;
-        Agent.data[agentId].name = data.name;
       }
       if ((data.team != null) && Agent.data[agentId].team !== data.team) {
         need_update = true;
@@ -123,7 +61,6 @@
             _id: agentId
           }, {
             $set: {
-              name: currentData.name,
               team: currentData.team,
               level: currentData.level
             }
@@ -134,24 +71,6 @@
             return TaskManager.end('Agent.resolved.update.callback');
           });
         });
-      }
-    },
-    resolve: function(agentId) {
-      var err, _ref;
-      try {
-        if (agentId) {
-          if (((_ref = Agent.data[agentId]) != null ? _ref.name : void 0) != null) {
-            return;
-          }
-          if (Utils.isSystemPlayer(agentId)) {
-            return;
-          }
-          TaskManager.begin();
-        }
-        return PlayerLookup.enqueue(agentId, noop);
-      } catch (_error) {
-        err = _error;
-        return logger.error("[PlayerLookup] Internal error while resolving agent_id=" + agentId + ": " + err.message + ".");
       }
     }
   };
