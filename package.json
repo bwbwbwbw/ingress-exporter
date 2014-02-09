@@ -15,6 +15,7 @@
         "mongoskin": "*",
         "moment": "*",
         "winston": "*",
-        "optimist": "*"
+        "optimist": "*",
+        "require-all": "*"
     }
 }

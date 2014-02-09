@@ -33,54 +33,86 @@ require './lib/entity.js'
 require './lib/chat.js'
 require './lib/mungedetector.js'
 
-#######################
-# bootstrap
-argv = require('optimist').argv
+GLOBAL.argv = require('optimist').argv
 async = require('async')
 
-taskCount = 0
+plugins = require('require-all')(
+    dirname: __dirname + '/plugins'
+    filter : /(.+)\.js$/,
+)
 
-TaskManager.begin()
+#######################
+# bootstrap
 
-async.series [
+stop = ->
 
-    (callback) ->
+    TaskManager.end 'AppMain.callback'
 
-        MungeDetector.detect callback
+bootstrap = ->
 
-    , (callback) ->
+    TaskManager.begin()
 
-        Agent.initFromDatabase callback
+    async.series [
 
-    , (callback) ->
+        (callback) ->
 
-        if argv.portals
-            Entity.requestMissingPortals callback
-        else
-            callback()
+            MungeDetector.detect callback
 
-    , (callback) ->
+        , (callback) ->
 
-        if argv.new or argv.n
-            if argv.portals
-                Tile.prepareNew Tile.start
-                taskCount++
-            if argv.broadcasts
-                Chat.prepareNew Chat.start
-                taskCount++
-        else
-            if argv.portals
-                Tile.prepareFromDatabase Tile.start
-                taskCount++
-            if argv.broadcasts
-                Chat.prepareFromDatabase Chat.start
-                taskCount++
+            Agent.initFromDatabase callback
 
+    ], ->
+
+        async.each pluginList, (plugin, callback) ->
+            if plugin.onBootstrap
+                plugin.onBootstrap callback
+            else
+                callback()
+        , (err) ->
+            
+            if err
+                stop err
+                return
+
+            async.series [
+
+                (callback) ->
+
+                    if argv.portals
+                        Entity.requestMissingPortals callback
+                    else
+                        callback()
+
+                , (callback) ->
+
+                    if argv.new or argv.n
+                        if argv.portals
+                            Tile.prepareNew Tile.start
+                        if argv.broadcasts
+                            Chat.prepareNew Chat.start
+                    else
+                        if argv.portals
+                            Tile.prepareFromDatabase Tile.start
+                        if argv.broadcasts
+                            Chat.prepareFromDatabase Chat.start
+
+                    callback()
+
+            ], ->
+
+                stop()
+
+#######################
+# main
+
+pluginList = []
+pluginList.push plugin for pname, plugin of plugins
+
+async.each pluginList, (plugin, callback) ->
+    if plugin.onInitialize
+        plugin.onInitialize callback
+    else
         callback()
-
-    , (callback) ->
-
-        TaskManager.end 'AppMain.callback'
-        callback()
-
-]
+, ->
+    bootstrap()

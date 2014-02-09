@@ -1,5 +1,5 @@
 (function() {
-  var argv, async, exitProcess, logger, noop, taskCount;
+  var async, bootstrap, exitProcess, logger, noop, plugin, pluginList, plugins, pname, stop;
 
   logger = GLOBAL.logger = require('winston');
 
@@ -47,50 +47,86 @@
 
   require('./lib/mungedetector.js');
 
-  argv = require('optimist').argv;
+  GLOBAL.argv = require('optimist').argv;
 
   async = require('async');
 
-  taskCount = 0;
+  plugins = require('require-all')({
+    dirname: __dirname + '/plugins',
+    filter: /(.+)\.js$/
+  });
 
-  TaskManager.begin();
+  stop = function() {
+    return TaskManager.end('AppMain.callback');
+  };
 
-  async.series([
-    function(callback) {
-      return MungeDetector.detect(callback);
-    }, function(callback) {
-      return Agent.initFromDatabase(callback);
-    }, function(callback) {
-      if (argv.portals) {
-        return Entity.requestMissingPortals(callback);
-      } else {
-        return callback();
+  bootstrap = function() {
+    TaskManager.begin();
+    return async.series([
+      function(callback) {
+        return MungeDetector.detect(callback);
+      }, function(callback) {
+        return Agent.initFromDatabase(callback);
       }
-    }, function(callback) {
-      if (argv["new"] || argv.n) {
-        if (argv.portals) {
-          Tile.prepareNew(Tile.start);
-          taskCount++;
+    ], function() {
+      return async.each(pluginList, function(plugin, callback) {
+        if (plugin.onBootstrap) {
+          return plugin.onBootstrap(callback);
+        } else {
+          return callback();
         }
-        if (argv.broadcasts) {
-          Chat.prepareNew(Chat.start);
-          taskCount++;
+      }, function(err) {
+        if (err) {
+          stop(err);
+          return;
         }
-      } else {
-        if (argv.portals) {
-          Tile.prepareFromDatabase(Tile.start);
-          taskCount++;
-        }
-        if (argv.broadcasts) {
-          Chat.prepareFromDatabase(Chat.start);
-          taskCount++;
-        }
-      }
-      return callback();
-    }, function(callback) {
-      TaskManager.end('AppMain.callback');
+        return async.series([
+          function(callback) {
+            if (argv.portals) {
+              return Entity.requestMissingPortals(callback);
+            } else {
+              return callback();
+            }
+          }, function(callback) {
+            if (argv["new"] || argv.n) {
+              if (argv.portals) {
+                Tile.prepareNew(Tile.start);
+              }
+              if (argv.broadcasts) {
+                Chat.prepareNew(Chat.start);
+              }
+            } else {
+              if (argv.portals) {
+                Tile.prepareFromDatabase(Tile.start);
+              }
+              if (argv.broadcasts) {
+                Chat.prepareFromDatabase(Chat.start);
+              }
+            }
+            return callback();
+          }
+        ], function() {
+          return stop();
+        });
+      });
+    });
+  };
+
+  pluginList = [];
+
+  for (pname in plugins) {
+    plugin = plugins[pname];
+    pluginList.push(plugin);
+  }
+
+  async.each(pluginList, function(plugin, callback) {
+    if (plugin.onInitialize) {
+      return plugin.onInitialize(callback);
+    } else {
       return callback();
     }
-  ]);
+  }, function() {
+    return bootstrap();
+  });
 
 }).call(this);
