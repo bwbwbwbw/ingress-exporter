@@ -38,6 +38,9 @@
         return callback && callback();
       }
     },
+    requestPortalDetail: function(guid) {
+      return requestPortalDetail(guid);
+    },
     requestMissingPortals: function(callback) {
       return Database.db.collection('Portals').find({
         team: {

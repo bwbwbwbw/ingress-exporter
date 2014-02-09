@@ -36,6 +36,10 @@ Entity = GLOBAL.Entity =
             logger.warn "Unknown entity type, id=#{id}, type=#{data.type}"
             callback && callback()
 
+    requestPortalDetail: (guid) ->
+
+        requestPortalDetail guid
+        
     requestMissingPortals: (callback) ->
 
         # request missing portal details
