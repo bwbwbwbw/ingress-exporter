@@ -27,8 +27,6 @@
 
   require('./config.js');
 
-  require('./lib/taskmanager.js');
-
   require('./lib/leaflet.js');
 
   require('./lib/utils.js');
@@ -37,11 +35,7 @@
 
   require('./lib/agent.js');
 
-  require('./lib/tile.js');
-
   require('./lib/entity.js');
-
-  require('./lib/chat.js');
 
   require('./lib/mungedetector.js');
 
