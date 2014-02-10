@@ -1,5 +1,5 @@
 (function() {
-  var async, bootstrap, exitProcess, logger, noop, plugin, pluginList, plugins, pname, stop;
+  var async, bootstrap, exitProcess, logger, noop, plugin, pluginList, plugins, pname;
 
   logger = GLOBAL.logger = require('winston');
 
@@ -35,8 +35,6 @@
 
   require('./lib/database.js');
 
-  require('./lib/request.js');
-
   require('./lib/agent.js');
 
   require('./lib/tile.js');
@@ -56,12 +54,7 @@
     filter: /(.+)\.js$/
   });
 
-  stop = function() {
-    return TaskManager.end('AppMain.callback');
-  };
-
   bootstrap = function() {
-    TaskManager.begin();
     return async.series([
       function(callback) {
         return MungeDetector.detect(callback);
@@ -69,45 +62,15 @@
         return Agent.initFromDatabase(callback);
       }
     ], function() {
-      return async.each(pluginList, function(plugin, callback) {
+      return async.eachSeries(pluginList, function(plugin, callback) {
         if (plugin.onBootstrap) {
           return plugin.onBootstrap(callback);
         } else {
           return callback();
         }
       }, function(err) {
-        if (err) {
-          stop(err);
-          return;
-        }
-        return async.series([
-          function(callback) {
-            if (argv.portals) {
-              return Entity.requestMissingPortals(callback);
-            } else {
-              return callback();
-            }
-          }, function(callback) {
-            if (argv["new"] || argv.n) {
-              if (argv.portals) {
-                Tile.prepareNew(Tile.start);
-              }
-              if (argv.broadcasts) {
-                Chat.prepareNew(Chat.start);
-              }
-            } else {
-              if (argv.portals) {
-                Tile.prepareFromDatabase(Tile.start);
-              }
-              if (argv.broadcasts) {
-                Chat.prepareFromDatabase(Chat.start);
-              }
-            }
-            return callback();
-          }
-        ], function() {
-          return stop();
-        });
+        console.log('[end]');
+        return Database.db.close();
       });
     });
   };
@@ -118,6 +81,12 @@
     plugin = plugins[pname];
     pluginList.push(plugin);
   }
+
+  pluginList.push({
+    onBootstrap: function(callback) {
+      return callback('end');
+    }
+  });
 
   async.each(pluginList, function(plugin, callback) {
     if (plugin.onInitialize) {

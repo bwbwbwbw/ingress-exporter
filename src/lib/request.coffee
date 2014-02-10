@@ -8,11 +8,49 @@ for v in Config.Auth.CookieRaw.split(';')
     C = v.trim().split '='
     cookies[C[0]] = unescape C[1]
 
-Request = GLOBAL.Request = 
-    
+class RequestFactory
+
+    constructor: ->
+
+        @max   = 0
+        @done  = 0
+        @munge = null
+
+        @queue = async.queue (task, callback) =>
+
+            @post '/r/' + task.m, task.d, (error, response, body) =>
+
+                if error
+                    console.log error.stack
+
+                if task.emitted?
+                    console.warn '[DEBUG] Ignored reemitted event'
+                    return
+
+                task.emitted = true
+
+                @done++
+
+                if error or not @processResponse error, response, body
+
+                    task.error error, ->
+                        task.response ->
+                            callback()
+
+                    return
+
+                task.success body, ->
+                    task.response ->
+                        callback()
+
+        , Config.Request.MaxParallel
+
     generate: (options) ->
 
-        activeMunge = if options.munge? then options.munge else Munges.Data[Munges.ActiveSet]
+        if @munge is null
+            activeMunge = Munges.Data[Munges.ActiveSet]
+        else
+            activeMunge = @munge
 
         methodName = 'dashboard.' + options.action
         versionStr = 'version_parameter'
@@ -26,25 +64,24 @@ Request = GLOBAL.Request =
         return {
             m:        methodName
             d:        post_data
-            success:  options.onSuccess
-            error:    options.onError
-            request:  options.beforeRequest
-            response: options.afterResponse
+            success:  options.onSuccess     || (body, callback) -> callback()
+            error:    options.onError       || (error, callback) -> callback()
+            response: options.afterResponse || (callback) -> callback()
         }
 
     push: (options) ->
 
-        task = Request.generate options
-        Request.queue.push task
+        @max++
+        task = @generate options
+        @queue.push task
     
     unshift: (options) ->
 
-        task = Request.generate options
-        Request.queue.unshift task
+        @max++
+        task = @generate options
+        @queue.unshift task
 
     post: (url, data, callback) ->
-
-        TaskManager.begin()
 
         needle.post 'http://www.ingress.com' + url, JSON.stringify(data),
 
@@ -60,14 +97,9 @@ Request = GLOBAL.Request =
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
                 'X-CSRFToken': cookies.csrftoken
 
-        , ->
-
-            callback.apply this, arguments
-            TaskManager.end 'Request.post (url='+url+')'
+        , callback
 
     get: (url, callback) ->
-
-        TaskManager.begin()
 
         needle.get 'http://www.ingress.com' + url, 
 
@@ -82,10 +114,7 @@ Request = GLOBAL.Request =
                 'Referer': 'http://www.ingress.com/intel'
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
 
-        , ->
-
-            callback.apply this, arguments
-            TaskManager.end 'Request.get'
+        , callback
 
     processResponse: (error, response, body) ->
 
@@ -101,41 +130,11 @@ Request = GLOBAL.Request =
                 process.exit 0
                 return false
 
+            logger.error '[DEBUG] Unknown server response'
             return false
 
         true
 
-Request.queue = async.queue (task, callback) ->
+module.exports = ->
 
-    TaskManager.begin()
-
-    Request.post '/r/' + task.m, task.d, (error, response, body) ->
-
-        if task.emitted?
-            console.warn '[DEBUG] Ignored reemitted event'
-            return
-
-        task.emitted = true
-
-        if error
-            task.error && task.error error
-            task.response && task.response error
-
-            callback()
-            TaskManager.end 'Request.queue.postCallback'
-            return
-
-        if not Request.processResponse error, response, body
-            logger.error '[DEBUG] Unknown server response'
-
-            callback()
-            TaskManager.end 'Request.queue.postCallback'
-            return
-        
-        task.success && task.success body
-        task.response && task.response null
-
-        callback()
-        TaskManager.end 'Request.queue.postCallback'
-
-, Config.Request.MaxParallel
+    return new RequestFactory()

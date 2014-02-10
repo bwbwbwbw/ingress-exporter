@@ -26,7 +26,6 @@ require './lib/taskmanager.js'
 require './lib/leaflet.js'
 require './lib/utils.js'
 require './lib/database.js'
-require './lib/request.js'
 require './lib/agent.js'
 require './lib/tile.js'
 require './lib/entity.js'
@@ -44,13 +43,7 @@ plugins = require('require-all')(
 #######################
 # bootstrap
 
-stop = ->
-
-    TaskManager.end 'AppMain.callback'
-
 bootstrap = ->
-
-    TaskManager.begin()
 
     async.series [
 
@@ -64,50 +57,28 @@ bootstrap = ->
 
     ], ->
 
-        async.each pluginList, (plugin, callback) ->
+        async.eachSeries pluginList, (plugin, callback) ->
+            
             if plugin.onBootstrap
                 plugin.onBootstrap callback
             else
                 callback()
+
         , (err) ->
             
-            if err
-                stop err
-                return
-
-            async.series [
-
-                (callback) ->
-
-                    if argv.portals
-                        Entity.requestMissingPortals callback
-                    else
-                        callback()
-
-                , (callback) ->
-
-                    if argv.new or argv.n
-                        if argv.portals
-                            Tile.prepareNew Tile.start
-                        if argv.broadcasts
-                            Chat.prepareNew Chat.start
-                    else
-                        if argv.portals
-                            Tile.prepareFromDatabase Tile.start
-                        if argv.broadcasts
-                            Chat.prepareFromDatabase Chat.start
-
-                    callback()
-
-            ], ->
-
-                stop()
+            console.log '[end]'
+            Database.db.close()
 
 #######################
 # main
 
 pluginList = []
 pluginList.push plugin for pname, plugin of plugins
+
+# the terminate plugin
+pluginList.push
+    onBootstrap: (callback) ->
+        callback 'end'
 
 async.each pluginList, (plugin, callback) ->
     if plugin.onInitialize

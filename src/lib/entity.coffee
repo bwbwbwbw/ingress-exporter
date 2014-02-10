@@ -1,5 +1,6 @@
-request_max = 0
-request_done = 0
+async = require 'async'
+requestFactory = require './request.js'
+request = requestFactory()
 
 requested_guid = {}
 
@@ -15,26 +16,49 @@ Entity = GLOBAL.Entity =
     add: (id, timestamp, data, callback) ->
 
         # update counter every 100 entities
+        
+        main = ->
 
+            Entity.entityCount++
+
+            if data.type is 'portal'
+                createPortalEntity id, timestamp, data, callback
+            else if data.type is 'region'
+                createFieldEntity id, timestamp, data, callback
+            else if data.type is 'edge'
+                createLinkEntity id, timestamp, data, callback
+            else
+                logger.warn "Unknown entity type, id=#{id}, type=#{data.type}"
+                callback && callback()
+
+        
         if Entity.entityCount % 100 is 0
-            Database.db.collection('Portals').count {}, (err, count) ->
-                Entity.counter.portals = count
-            Database.db.collection('Fields').count {}, (err, count) ->
-                Entity.counter.fields = count
-            Database.db.collection('Links').count {}, (err, count) ->
-                Entity.counter.links = count
 
-        Entity.entityCount++
+            async.parallel [
 
-        if data.type is 'portal'
-            createPortalEntity.apply this, arguments
-        else if data.type is 'region'
-            createFieldEntity.apply this, arguments
-        else if data.type is 'edge'
-            createLinkEntity.apply this, arguments
+                (callback) ->
+                    
+                    Database.db.collection('Portals').count {}, (err, count) ->
+                        Entity.counter.portals = count
+                        callback()
+
+                , (callback) ->
+
+                    Database.db.collection('Fields').count {}, (err, count) ->
+                        Entity.counter.fields = count
+                        callback()
+
+                , (callback) ->
+                    
+                    Database.db.collection('Links').count {}, (err, count) ->
+                        Entity.counter.links = count
+                        callback()
+
+            ], main
+
         else
-            logger.warn "Unknown entity type, id=#{id}, type=#{data.type}"
-            callback && callback()
+        
+            main()
 
     requestPortalDetail: (guid) ->
 
@@ -57,14 +81,21 @@ Entity = GLOBAL.Entity =
                 callback err
                 return
 
-            requestPortalDetail po._id for po in portals if portals
-            callback()
+            if portals
+
+                async.each portals, (po, callback) ->
+
+                     requestPortalDetail po._id, callback
+
+                , callback()
+
+            else
+
+                callback()
 
 createEntity = (collection, id, timestamp, data, callback) ->
 
     data.time = timestamp
-
-    TaskManager.begin()
 
     Database.db.collection(collection).update
         _id: id
@@ -73,40 +104,41 @@ createEntity = (collection, id, timestamp, data, callback) ->
             data
     ,
         upsert: true
-    , (err) ->
-        
-        callback && callback.apply this, arguments
-        TaskManager.end()
+    , callback
 
 createPortalEntity = (id, timestamp, data, callback) ->
 
-    createEntity 'Portals', id, timestamp, data, callback
-    requestPortalDetail id if data.team isnt 'NEUTRAL'
+    createEntity 'Portals', id, timestamp, data, ->
+
+        if data.team isnt 'NEUTRAL'
+            requestPortalDetail id, ->
+                callback && callback 'portal'
+        else
+            callback && callback 'portal'
 
 createFieldEntity = (id, timestamp, data, callback) ->
 
-    createEntity 'Fields', id, timestamp, data, callback
+    createEntity 'Fields', id, timestamp, data, ->
+        callback && callback 'field'
 
 createLinkEntity = (id, timestamp, data, callback) ->
 
-    createEntity 'Links', id, timestamp, data, callback
+    createEntity 'Links', id, timestamp, data, ->
+        callback && callback 'link'
 
-requestPortalDetail = (guid) ->
+requestPortalDetail = (guid, callback) ->
 
     # TODO: WTF?
-    return if requested_guid[guid]?
+    return callback() if requested_guid[guid]?
+
     requested_guid[guid] = true
 
-    TaskManager.begin()
-
-    request_max++
-
-    Request.unshift
+    request.push
 
         action: 'getPortalDetails'
         data:
             guid: guid
-        onSuccess: (response) ->
+        onSuccess: (response, callback) ->
 
             if response.captured?.capturedTime?
                 response.captured.capturedTime = parseInt response.captured.capturedTime
@@ -115,21 +147,20 @@ requestPortalDetail = (guid) ->
                 _id: guid
             ,
                 $set: response
-            , noop
+            , ->
 
-            # resolve agent information
-            Agent.resolveFromPortalDetail response
+                # resolve agent information
+                Agent.resolveFromPortalDetail response, callback
 
-        onError: (err) ->
+        onError: (err, callback) ->
 
-            logger.error "[Details] " + err
+            logger.error "[Details] #{err.message}"
+            callback()
 
         afterResponse: ->
 
-            request_done++
-
             logger.info "[Details] " +
-                Math.round(request_done / request_max * 100).toString() +
-                "%\t[#{request_done}/#{request_max}]"
+                Math.round(request.done / request.max * 100).toString() +
+                "%\t[#{request.done}/#{request.max}]"
 
-            TaskManager.end 'Entity.requestPortalDetail.afterResponseCallback'
+            callback()

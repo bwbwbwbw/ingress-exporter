@@ -13,34 +13,34 @@ Agent = GLOBAL.Agent =
 
     initFromDatabase: (callback) ->
 
-        TaskManager.begin()
-
         Database.db.collection('Agent').find().toArray (err, agents) ->
 
             Agent.data[agent._id] = agent for agent in agents if agents
             callback && callback()
 
-            TaskManager.end 'Agent.initFromDatabase.callback'
-
     strToTeam: (val) ->
 
         StrTeamMapping[val]
 
-    resolveFromPortalDetail: (portal) ->
+    resolveFromPortalDetail: (portal, callback) ->
 
         agentTeam = Agent.strToTeam portal.controllingTeam.team
 
-        for resonator in portal.resonatorArray.resonators
+        async.each portal.resonatorArray.resonators, (resonator, callback) ->
 
-            # consider ADA Reflector/Jarvis Virus?
-            
-            if resonator?
-
+            if resonator isnt null
+                
                 Agent.resolved resonator.ownerGuid,
                     level: resonator.level
                     team:  agentTeam
+                , callback
 
-    resolved: (agentId, data) ->
+            else
+                callback()
+        
+        , callback
+
+    resolved: (agentId, data, callback) ->
 
         # name has been resolved as agentId
         # data: team, level
@@ -63,27 +63,25 @@ Agent = GLOBAL.Agent =
             Agent.data[agentId].level = data.level
 
         if need_update and not Agent.data[agentId].inUpdateProgress
+            
             Agent.data[agentId].inUpdateProgress = true
 
-            TaskManager.begin()
+            Database.db.collection('Agent').update
+                _id: agentId
+            ,
+                $set:
+                    team:   Agent.data[agentId].team
+                    level:  Agent.data[agentId].level
+            ,
+                upsert: true
+            , (err) ->
 
-            dbQueue.push (callback) ->
+                Agent.data[agentId].inUpdateProgress = false
+                callback && callback()
 
-                currentData = Agent.data[agentId]
-                currentData.inUpdateProgress = false
+        else
 
-                Database.db.collection('Agent').update
-                    _id: agentId
-                ,
-                    $set:
-                        team: currentData.team
-                        level: currentData.level
-                ,
-                    upsert: true
-                , (err) ->
-
-                    callback()
-                    TaskManager.end 'Agent.resolved.update.callback'
+            callback()
         
     _resolveDatabase: (callback) ->
 
@@ -102,11 +100,7 @@ Agent = GLOBAL.Agent =
                 return
 
             # TODO: reduce memory usage
-            Agent.resolveFromPortalDetail portal for portal in portals if portals?
-            callback()
-
-dbQueue = async.queue (task, callback) ->
-
-    task callback
-
-, Config.Database.MaxParallel
+            if portals?
+                async.eachSeries portals, Agent.resolveFromPortalDetail, callback
+            else
+                callback()

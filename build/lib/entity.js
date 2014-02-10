@@ -1,9 +1,11 @@
 (function() {
-  var Entity, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, requestPortalDetail, request_done, request_max, requested_guid;
+  var Entity, async, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, request, requestFactory, requestPortalDetail, requested_guid;
 
-  request_max = 0;
+  async = require('async');
 
-  request_done = 0;
+  requestFactory = require('./request.js');
+
+  request = requestFactory();
 
   requested_guid = {};
 
@@ -15,27 +17,41 @@
     },
     entityCount: 0,
     add: function(id, timestamp, data, callback) {
+      var main;
+      main = function() {
+        Entity.entityCount++;
+        if (data.type === 'portal') {
+          return createPortalEntity(id, timestamp, data, callback);
+        } else if (data.type === 'region') {
+          return createFieldEntity(id, timestamp, data, callback);
+        } else if (data.type === 'edge') {
+          return createLinkEntity(id, timestamp, data, callback);
+        } else {
+          logger.warn("Unknown entity type, id=" + id + ", type=" + data.type);
+          return callback && callback();
+        }
+      };
       if (Entity.entityCount % 100 === 0) {
-        Database.db.collection('Portals').count({}, function(err, count) {
-          return Entity.counter.portals = count;
-        });
-        Database.db.collection('Fields').count({}, function(err, count) {
-          return Entity.counter.fields = count;
-        });
-        Database.db.collection('Links').count({}, function(err, count) {
-          return Entity.counter.links = count;
-        });
-      }
-      Entity.entityCount++;
-      if (data.type === 'portal') {
-        return createPortalEntity.apply(this, arguments);
-      } else if (data.type === 'region') {
-        return createFieldEntity.apply(this, arguments);
-      } else if (data.type === 'edge') {
-        return createLinkEntity.apply(this, arguments);
+        return async.parallel([
+          function(callback) {
+            return Database.db.collection('Portals').count({}, function(err, count) {
+              Entity.counter.portals = count;
+              return callback();
+            });
+          }, function(callback) {
+            return Database.db.collection('Fields').count({}, function(err, count) {
+              Entity.counter.fields = count;
+              return callback();
+            });
+          }, function(callback) {
+            return Database.db.collection('Links').count({}, function(err, count) {
+              Entity.counter.links = count;
+              return callback();
+            });
+          }
+        ], main);
       } else {
-        logger.warn("Unknown entity type, id=" + id + ", type=" + data.type);
-        return callback && callback();
+        return main();
       }
     },
     requestPortalDetail: function(guid) {
@@ -52,83 +68,86 @@
       }, {
         _id: true
       }).toArray(function(err, portals) {
-        var po, _i, _len;
         if (err) {
           callback(err);
           return;
         }
         if (portals) {
-          for (_i = 0, _len = portals.length; _i < _len; _i++) {
-            po = portals[_i];
-            requestPortalDetail(po._id);
-          }
+          return async.each(portals, function(po, callback) {
+            return requestPortalDetail(po._id, callback);
+          }, callback());
+        } else {
+          return callback();
         }
-        return callback();
       });
     }
   };
 
   createEntity = function(collection, id, timestamp, data, callback) {
     data.time = timestamp;
-    TaskManager.begin();
     return Database.db.collection(collection).update({
       _id: id
     }, {
       $set: data
     }, {
       upsert: true
-    }, function(err) {
-      callback && callback.apply(this, arguments);
-      return TaskManager.end();
-    });
+    }, callback);
   };
 
   createPortalEntity = function(id, timestamp, data, callback) {
-    createEntity('Portals', id, timestamp, data, callback);
-    if (data.team !== 'NEUTRAL') {
-      return requestPortalDetail(id);
-    }
+    return createEntity('Portals', id, timestamp, data, function() {
+      if (data.team !== 'NEUTRAL') {
+        return requestPortalDetail(id, function() {
+          return callback && callback('portal');
+        });
+      } else {
+        return callback && callback('portal');
+      }
+    });
   };
 
   createFieldEntity = function(id, timestamp, data, callback) {
-    return createEntity('Fields', id, timestamp, data, callback);
+    return createEntity('Fields', id, timestamp, data, function() {
+      return callback && callback('field');
+    });
   };
 
   createLinkEntity = function(id, timestamp, data, callback) {
-    return createEntity('Links', id, timestamp, data, callback);
+    return createEntity('Links', id, timestamp, data, function() {
+      return callback && callback('link');
+    });
   };
 
-  requestPortalDetail = function(guid) {
+  requestPortalDetail = function(guid, callback) {
     if (requested_guid[guid] != null) {
-      return;
+      return callback();
     }
     requested_guid[guid] = true;
-    TaskManager.begin();
-    request_max++;
-    return Request.unshift({
+    return request.push({
       action: 'getPortalDetails',
       data: {
         guid: guid
       },
-      onSuccess: function(response) {
+      onSuccess: function(response, callback) {
         var _ref;
         if (((_ref = response.captured) != null ? _ref.capturedTime : void 0) != null) {
           response.captured.capturedTime = parseInt(response.captured.capturedTime);
         }
-        Database.db.collection('Portals').update({
+        return Database.db.collection('Portals').update({
           _id: guid
         }, {
           $set: response
-        }, noop);
-        return Agent.resolveFromPortalDetail(response);
+        }, function() {
+          return Agent.resolveFromPortalDetail(response, callback);
+        });
       },
-      onError: function(err) {
-        return logger.error("[Details] " + err);
+      onError: function(err, callback) {
+        logger.error("[Details] " + err.message);
+        return callback();
       },
       afterResponse: function() {
-        request_done++;
-        logger.info("[Details] " + Math.round(request_done / request_max * 100).toString() + ("%\t[" + request_done + "/" + request_max + "]"));
-        return TaskManager.end('Entity.requestPortalDetail.afterResponseCallback');
+        logger.info("[Details] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]"));
+        return callback();
       }
     });
   };

@@ -1,4 +1,6 @@
 async = require 'async'
+requestFactory = require './request.js'
+request = requestFactory()
 
 NemesisMethodName = null
 
@@ -9,8 +11,6 @@ Munges = GLOBAL.Munges =
 MungeDetector = GLOBAL.MungeDetector = 
     
     detect: (callback) ->
-
-        TaskManager.begin()
 
         async.series [
 
@@ -85,58 +85,38 @@ MungeDetector = GLOBAL.MungeDetector =
                         logger.info '[MungeDetector] Munge data saved.'
 
                         callback && callback()
-                        TaskManager.end 'MungeDetector.detect'
                         return
 
                 else
 
                     callback && callback()
-                    TaskManager.end 'MungeDetector.detect'
                     return
 
             else
 
                 logger.error '[MungeDetector] Could not detect munge data. Tasks are terminated.'
-                TaskManager.end 'MungeDetector.detect'
                 process.exit 0
 
-tryMungeSet = (munge, callback) ->
+tryMungeSet = (munge, tryCallback) ->
 
-    task = Request.generate
+    request.munge = munge
 
-        munge:  munge
+    request.push
         action: 'getGameScore'
         data:   {}
-        onSuccess: (response) ->
-            callback && callback()
-        onError: (err) ->
-            callback && callback err
+        onSuccess: (response, callback) ->
 
-    Request.post '/r/' + task.m, task.d, (error, response, body) ->
+            callback()
+            tryCallback && tryCallback()
 
-        if error
-            task.error && task.error error
-            return
-
-        if not Request.processResponse error, response, body
-            logger.error '[DEBUG] Unknown server response'
-            return
-
-        # unknown error
-        if typeof body is 'string'
-            task.error && task.error body
-            return
-
-        # maybe 'missing version'
-        if body.error?
-            task.error && task.error body.error
-            return
-        
-        task.success && task.success body
+        onError: (err, callback) ->
+            
+            callback()
+            tryCallback && tryCallback err
 
 extractMunge = (callback) ->
 
-    Request.get '/jsc/gen_dashboard.js', (error, response, body) ->
+    request.get '/jsc/gen_dashboard.js', (error, response, body) ->
         
         if error
             callback 'fail'

@@ -1,5 +1,5 @@
 (function() {
-  var C, Request, async, cookies, needle, v, _i, _len, _ref;
+  var C, RequestFactory, async, cookies, needle, v, _i, _len, _ref;
 
   needle = require('needle');
 
@@ -14,10 +14,47 @@
     cookies[C[0]] = unescape(C[1]);
   }
 
-  Request = GLOBAL.Request = {
-    generate: function(options) {
+  RequestFactory = (function() {
+    function RequestFactory() {
+      var _this = this;
+      this.max = 0;
+      this.done = 0;
+      this.munge = null;
+      this.queue = async.queue(function(task, callback) {
+        return _this.post('/r/' + task.m, task.d, function(error, response, body) {
+          if (error) {
+            console.log(error.stack);
+          }
+          if (task.emitted != null) {
+            console.warn('[DEBUG] Ignored reemitted event');
+            return;
+          }
+          task.emitted = true;
+          _this.done++;
+          if (error || !_this.processResponse(error, response, body)) {
+            task.error(error, function() {
+              return task.response(function() {
+                return callback();
+              });
+            });
+            return;
+          }
+          return task.success(body, function() {
+            return task.response(function() {
+              return callback();
+            });
+          });
+        });
+      }, Config.Request.MaxParallel);
+    }
+
+    RequestFactory.prototype.generate = function(options) {
       var activeMunge, methodName, post_data, versionStr;
-      activeMunge = options.munge != null ? options.munge : Munges.Data[Munges.ActiveSet];
+      if (this.munge === null) {
+        activeMunge = Munges.Data[Munges.ActiveSet];
+      } else {
+        activeMunge = this.munge;
+      }
       methodName = 'dashboard.' + options.action;
       versionStr = 'version_parameter';
       methodName = activeMunge[methodName];
@@ -29,24 +66,33 @@
       return {
         m: methodName,
         d: post_data,
-        success: options.onSuccess,
-        error: options.onError,
-        request: options.beforeRequest,
-        response: options.afterResponse
+        success: options.onSuccess || function(body, callback) {
+          return callback();
+        },
+        error: options.onError || function(error, callback) {
+          return callback();
+        },
+        response: options.afterResponse || function(callback) {
+          return callback();
+        }
       };
-    },
-    push: function(options) {
+    };
+
+    RequestFactory.prototype.push = function(options) {
       var task;
-      task = Request.generate(options);
-      return Request.queue.push(task);
-    },
-    unshift: function(options) {
+      this.max++;
+      task = this.generate(options);
+      return this.queue.push(task);
+    };
+
+    RequestFactory.prototype.unshift = function(options) {
       var task;
-      task = Request.generate(options);
-      return Request.queue.unshift(task);
-    },
-    post: function(url, data, callback) {
-      TaskManager.begin();
+      this.max++;
+      task = this.generate(options);
+      return this.queue.unshift(task);
+    };
+
+    RequestFactory.prototype.post = function(url, data, callback) {
       return needle.post('http://www.ingress.com' + url, JSON.stringify(data), {
         compressed: true,
         timeout: 20000,
@@ -60,13 +106,10 @@
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36',
           'X-CSRFToken': cookies.csrftoken
         }
-      }, function() {
-        callback.apply(this, arguments);
-        return TaskManager.end('Request.post (url=' + url + ')');
-      });
-    },
-    get: function(url, callback) {
-      TaskManager.begin();
+      }, callback);
+    };
+
+    RequestFactory.prototype.get = function(url, callback) {
       return needle.get('http://www.ingress.com' + url, {
         compressed: true,
         timeout: 20000,
@@ -79,12 +122,10 @@
           'Referer': 'http://www.ingress.com/intel',
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
         }
-      }, function() {
-        callback.apply(this, arguments);
-        return TaskManager.end('Request.get');
-      });
-    },
-    processResponse: function(error, response, body) {
+      }, callback);
+    };
+
+    RequestFactory.prototype.processResponse = function(error, response, body) {
       if (typeof body === 'string') {
         if (body.indexOf('CSRF verification failed. Request aborted.' > -1)) {
           logger.error('[Auth] CSRF verification failed. Please make sure that the cookie is right.');
@@ -96,38 +137,18 @@
           process.exit(0);
           return false;
         }
+        logger.error('[DEBUG] Unknown server response');
         return false;
       }
       return true;
-    }
-  };
+    };
 
-  Request.queue = async.queue(function(task, callback) {
-    TaskManager.begin();
-    return Request.post('/r/' + task.m, task.d, function(error, response, body) {
-      if (task.emitted != null) {
-        console.warn('[DEBUG] Ignored reemitted event');
-        return;
-      }
-      task.emitted = true;
-      if (error) {
-        task.error && task.error(error);
-        task.response && task.response(error);
-        callback();
-        TaskManager.end('Request.queue.postCallback');
-        return;
-      }
-      if (!Request.processResponse(error, response, body)) {
-        logger.error('[DEBUG] Unknown server response');
-        callback();
-        TaskManager.end('Request.queue.postCallback');
-        return;
-      }
-      task.success && task.success(body);
-      task.response && task.response(null);
-      callback();
-      return TaskManager.end('Request.queue.postCallback');
-    });
-  }, Config.Request.MaxParallel);
+    return RequestFactory;
+
+  })();
+
+  module.exports = function() {
+    return new RequestFactory();
+  };
 
 }).call(this);

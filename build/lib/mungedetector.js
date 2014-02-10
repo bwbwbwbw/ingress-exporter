@@ -1,7 +1,11 @@
 (function() {
-  var MungeDetector, Munges, NemesisMethodName, async, extractMunge, tryMungeSet;
+  var MungeDetector, Munges, NemesisMethodName, async, extractMunge, request, requestFactory, tryMungeSet;
 
   async = require('async');
+
+  requestFactory = require('./request.js');
+
+  request = requestFactory();
 
   NemesisMethodName = null;
 
@@ -12,7 +16,6 @@
 
   MungeDetector = GLOBAL.MungeDetector = {
     detect: function(callback) {
-      TaskManager.begin();
       return async.series([
         function(callback) {
           return Database.db.collection('MungeData').findOne({
@@ -67,57 +70,36 @@
             }, function(err) {
               logger.info('[MungeDetector] Munge data saved.');
               callback && callback();
-              TaskManager.end('MungeDetector.detect');
             });
           } else {
             callback && callback();
-            TaskManager.end('MungeDetector.detect');
           }
         } else {
           logger.error('[MungeDetector] Could not detect munge data. Tasks are terminated.');
-          TaskManager.end('MungeDetector.detect');
           return process.exit(0);
         }
       });
     }
   };
 
-  tryMungeSet = function(munge, callback) {
-    var task;
-    task = Request.generate({
-      munge: munge,
+  tryMungeSet = function(munge, tryCallback) {
+    request.munge = munge;
+    return request.push({
       action: 'getGameScore',
       data: {},
-      onSuccess: function(response) {
-        return callback && callback();
+      onSuccess: function(response, callback) {
+        callback();
+        return tryCallback && tryCallback();
       },
-      onError: function(err) {
-        return callback && callback(err);
+      onError: function(err, callback) {
+        callback();
+        return tryCallback && tryCallback(err);
       }
-    });
-    return Request.post('/r/' + task.m, task.d, function(error, response, body) {
-      if (error) {
-        task.error && task.error(error);
-        return;
-      }
-      if (!Request.processResponse(error, response, body)) {
-        logger.error('[DEBUG] Unknown server response');
-        return;
-      }
-      if (typeof body === 'string') {
-        task.error && task.error(body);
-        return;
-      }
-      if (body.error != null) {
-        task.error && task.error(body.error);
-        return;
-      }
-      return task.success && task.success(body);
     });
   };
 
   extractMunge = function(callback) {
-    return Request.get('/jsc/gen_dashboard.js', function(error, response, body) {
+    return request.get('/jsc/gen_dashboard.js', function(error, response, body) {
       var err, export_obj, extractMungeFromStock, google, result;
       if (error) {
         callback('fail');

@@ -1,5 +1,5 @@
 (function() {
-  var Agent, StrTeamMapping, TEAM_ENLIGHTENED, TEAM_RESISTANCE, async, dbQueue;
+  var Agent, StrTeamMapping, TEAM_ENLIGHTENED, TEAM_RESISTANCE, async;
 
   async = require('async');
 
@@ -15,7 +15,6 @@
   Agent = GLOBAL.Agent = {
     data: {},
     initFromDatabase: function(callback) {
-      TaskManager.begin();
       return Database.db.collection('Agent').find().toArray(function(err, agents) {
         var agent, _i, _len;
         if (agents) {
@@ -24,32 +23,27 @@
             Agent.data[agent._id] = agent;
           }
         }
-        callback && callback();
-        return TaskManager.end('Agent.initFromDatabase.callback');
+        return callback && callback();
       });
     },
     strToTeam: function(val) {
       return StrTeamMapping[val];
     },
-    resolveFromPortalDetail: function(portal) {
-      var agentTeam, resonator, _i, _len, _ref, _results;
+    resolveFromPortalDetail: function(portal, callback) {
+      var agentTeam;
       agentTeam = Agent.strToTeam(portal.controllingTeam.team);
-      _ref = portal.resonatorArray.resonators;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        resonator = _ref[_i];
-        if (resonator != null) {
-          _results.push(Agent.resolved(resonator.ownerGuid, {
+      return async.each(portal.resonatorArray.resonators, function(resonator, callback) {
+        if (resonator !== null) {
+          return Agent.resolved(resonator.ownerGuid, {
             level: resonator.level,
             team: agentTeam
-          }));
+          }, callback);
         } else {
-          _results.push(void 0);
+          return callback();
         }
-      }
-      return _results;
+      }, callback);
     },
-    resolved: function(agentId, data) {
+    resolved: function(agentId, data, callback) {
       var need_update;
       need_update = false;
       if (Agent.data[agentId] == null) {
@@ -70,25 +64,21 @@
       }
       if (need_update && !Agent.data[agentId].inUpdateProgress) {
         Agent.data[agentId].inUpdateProgress = true;
-        TaskManager.begin();
-        return dbQueue.push(function(callback) {
-          var currentData;
-          currentData = Agent.data[agentId];
-          currentData.inUpdateProgress = false;
-          return Database.db.collection('Agent').update({
-            _id: agentId
-          }, {
-            $set: {
-              team: currentData.team,
-              level: currentData.level
-            }
-          }, {
-            upsert: true
-          }, function(err) {
-            callback();
-            return TaskManager.end('Agent.resolved.update.callback');
-          });
+        return Database.db.collection('Agent').update({
+          _id: agentId
+        }, {
+          $set: {
+            team: Agent.data[agentId].team,
+            level: Agent.data[agentId].level
+          }
+        }, {
+          upsert: true
+        }, function(err) {
+          Agent.data[agentId].inUpdateProgress = false;
+          return callback && callback();
         });
+      } else {
+        return callback();
       }
     },
     _resolveDatabase: function(callback) {
@@ -103,24 +93,17 @@
         resonatorArray: true,
         controllingTeam: true
       }).toArray(function(err, portals) {
-        var portal, _i, _len;
         if (err) {
           callback(err);
           return;
         }
         if (portals != null) {
-          for (_i = 0, _len = portals.length; _i < _len; _i++) {
-            portal = portals[_i];
-            Agent.resolveFromPortalDetail(portal);
-          }
+          return async.eachSeries(portals, Agent.resolveFromPortalDetail, callback);
+        } else {
+          return callback();
         }
-        return callback();
       });
     }
   };
-
-  dbQueue = async.queue(function(task, callback) {
-    return task(callback);
-  }, Config.Database.MaxParallel);
 
 }).call(this);
