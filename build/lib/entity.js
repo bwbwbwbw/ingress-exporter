@@ -118,15 +118,21 @@
     });
   };
 
-  requestPortalDetail = function(guid, callback) {
+  requestPortalDetail = function(guid, outerCallback) {
+    var t;
     if (requested_guid[guid] != null) {
-      return callback();
+      return outerCallback();
     }
     requested_guid[guid] = true;
+    t = 0;
     return request.push({
       action: 'getPortalDetails',
       data: {
         guid: guid
+      },
+      beforeRequest: function(callback) {
+        t = Date.now();
+        return callback();
       },
       onSuccess: function(response, callback) {
         var _ref;
@@ -145,9 +151,10 @@
         logger.error("[Details] " + err.message);
         return callback();
       },
-      afterResponse: function() {
-        logger.info("[Details] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]"));
-        return callback();
+      afterResponse: function(callback) {
+        logger.info("[Details] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]\t" + (Date.now() - t) + "ms"));
+        callback();
+        return outerCallback();
       }
     });
   };

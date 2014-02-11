@@ -72,9 +72,15 @@
         upsert: true
       }, callback);
     }, function(err) {
+      var t;
+      t = 0;
       request.push({
         action: 'getThinnedEntities',
         data: data,
+        beforeRequest: function(callback) {
+          t = Date.now();
+          return callback();
+        },
         onSuccess: function(response, callback) {
           return processSuccessTileResponse(response, tiles, callback);
         },
@@ -84,7 +90,7 @@
         },
         afterResponse: function(callback) {
           return checkTimeoutAndFailTiles(function() {
-            logger.info("[Portals] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]") + ("\t" + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
+            logger.info("[Portals] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]\t" + (Date.now() - t) + "ms") + ("\t" + Entity.counter.portals + " portals, " + Entity.counter.links + " links, " + Entity.counter.fields + " fields"));
             return callback();
           });
         }

@@ -126,18 +126,25 @@ createLinkEntity = (id, timestamp, data, callback) ->
     createEntity 'Links', id, timestamp, data, ->
         callback && callback 'link'
 
-requestPortalDetail = (guid, callback) ->
+requestPortalDetail = (guid, outerCallback) ->
 
     # TODO: WTF?
-    return callback() if requested_guid[guid]?
+    return outerCallback() if requested_guid[guid]?
 
     requested_guid[guid] = true
+
+    t = 0
 
     request.push
 
         action: 'getPortalDetails'
         data:
             guid: guid
+        beforeRequest: (callback) ->
+
+                t = Date.now()
+                callback()
+
         onSuccess: (response, callback) ->
 
             if response.captured?.capturedTime?
@@ -157,10 +164,11 @@ requestPortalDetail = (guid, callback) ->
             logger.error "[Details] #{err.message}"
             callback()
 
-        afterResponse: ->
+        afterResponse: (callback) ->
 
             logger.info "[Details] " +
                 Math.round(request.done / request.max * 100).toString() +
-                "%\t[#{request.done}/#{request.max}]"
+                "%\t[#{request.done}/#{request.max}]\t#{Date.now() - t}ms"
 
             callback()
+            outerCallback()

@@ -55,11 +55,18 @@ tileBucket = async.cargo (tiles, callback) ->
 
     , (err) ->
         # onFinish
+        
+        t = 0
 
         request.push
 
             action: 'getThinnedEntities'
             data:   data
+            beforeRequest: (callback) ->
+
+                t = Date.now()
+                callback()
+
             onSuccess: (response, callback) ->
 
                 processSuccessTileResponse response, tiles, callback
@@ -76,7 +83,7 @@ tileBucket = async.cargo (tiles, callback) ->
 
                     logger.info "[Portals] " +
                         Math.round(request.done / request.max * 100).toString() +
-                        "%\t[#{request.done}/#{request.max}]" +
+                        "%\t[#{request.done}/#{request.max}]\t#{Date.now() - t}ms" +
                         "\t#{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
 
                     callback()
