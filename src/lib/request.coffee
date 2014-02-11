@@ -18,30 +18,32 @@ class RequestFactory
 
         @queue = async.queue (task, callback) =>
 
-            @post '/r/' + task.m, task.d, (error, response, body) =>
+            task.before =>
 
-                if error
-                    console.log error.stack
+                @post '/r/' + task.m, task.d, (error, response, body) =>
 
-                if task.emitted?
-                    console.warn '[DEBUG] Ignored reemitted event'
-                    return
+                    if error
+                        console.log error.stack
 
-                task.emitted = true
+                    if task.emitted?
+                        console.warn '[DEBUG] Ignored reemitted event'
+                        return
 
-                @done++
+                    task.emitted = true
 
-                if error or not @processResponse error, response, body
+                    @done++
 
-                    task.error error, ->
+                    if error or not @processResponse error, response, body
+
+                        task.error error, ->
+                            task.response ->
+                                callback()
+
+                        return
+
+                    task.success body, ->
                         task.response ->
                             callback()
-
-                    return
-
-                task.success body, ->
-                    task.response ->
-                        callback()
 
         , Config.Request.MaxParallel
 
@@ -64,6 +66,7 @@ class RequestFactory
         return {
             m:        methodName
             d:        post_data
+            before:   options.beforeRequest || (callback) -> callback()
             success:  options.onSuccess     || (body, callback) -> callback()
             error:    options.onError       || (error, callback) -> callback()
             response: options.afterResponse || (callback) -> callback()
@@ -94,7 +97,7 @@ class RequestFactory
                 'Host': 'www.ingress.com'
                 'Origin': 'http://www.ingress.com'
                 'Referer': 'http://www.ingress.com/intel'
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
+                'User-Agent': Config.Request.UserAgent
                 'X-CSRFToken': cookies.csrftoken
 
         , callback
@@ -112,7 +115,7 @@ class RequestFactory
                 'Cache-Control': 'max-age=0'
                 'Origin': 'http://www.ingress.com'
                 'Referer': 'http://www.ingress.com/intel'
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
+                'User-Agent': Config.Request.UserAgent
 
         , callback
 

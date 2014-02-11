@@ -21,27 +21,29 @@
       this.done = 0;
       this.munge = null;
       this.queue = async.queue(function(task, callback) {
-        return _this.post('/r/' + task.m, task.d, function(error, response, body) {
-          if (error) {
-            console.log(error.stack);
-          }
-          if (task.emitted != null) {
-            console.warn('[DEBUG] Ignored reemitted event');
-            return;
-          }
-          task.emitted = true;
-          _this.done++;
-          if (error || !_this.processResponse(error, response, body)) {
-            task.error(error, function() {
+        return task.before(function() {
+          return _this.post('/r/' + task.m, task.d, function(error, response, body) {
+            if (error) {
+              console.log(error.stack);
+            }
+            if (task.emitted != null) {
+              console.warn('[DEBUG] Ignored reemitted event');
+              return;
+            }
+            task.emitted = true;
+            _this.done++;
+            if (error || !_this.processResponse(error, response, body)) {
+              task.error(error, function() {
+                return task.response(function() {
+                  return callback();
+                });
+              });
+              return;
+            }
+            return task.success(body, function() {
               return task.response(function() {
                 return callback();
               });
-            });
-            return;
-          }
-          return task.success(body, function() {
-            return task.response(function() {
-              return callback();
             });
           });
         });
@@ -66,6 +68,9 @@
       return {
         m: methodName,
         d: post_data,
+        before: options.beforeRequest || function(callback) {
+          return callback();
+        },
         success: options.onSuccess || function(body, callback) {
           return callback();
         },
@@ -103,7 +108,7 @@
           'Host': 'www.ingress.com',
           'Origin': 'http://www.ingress.com',
           'Referer': 'http://www.ingress.com/intel',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36',
+          'User-Agent': Config.Request.UserAgent,
           'X-CSRFToken': cookies.csrftoken
         }
       }, callback);
@@ -120,7 +125,7 @@
           'Cache-Control': 'max-age=0',
           'Origin': 'http://www.ingress.com',
           'Referer': 'http://www.ingress.com/intel',
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36'
+          'User-Agent': Config.Request.UserAgent
         }
       }, callback);
     };
