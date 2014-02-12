@@ -1,5 +1,5 @@
 (function() {
-  var Entity, async, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, request, requestFactory, requestPortalDetail, requested_guid;
+  var Entity, async, createEntity, createFieldEntity, createLinkEntity, createPortalEntity, request, requestFactory, requested_guid;
 
   async = require('async');
 
@@ -54,8 +54,45 @@
         return main();
       }
     },
-    requestPortalDetail: function(guid) {
-      return requestPortalDetail(guid);
+    requestPortalDetail: function(guid, outerCallback) {
+      var t;
+      if (requested_guid[guid] != null) {
+        return outerCallback();
+      }
+      requested_guid[guid] = true;
+      t = 0;
+      return request.push({
+        action: 'getPortalDetails',
+        data: {
+          guid: guid
+        },
+        beforeRequest: function(callback) {
+          t = Date.now();
+          return callback();
+        },
+        onSuccess: function(response, callback) {
+          var _ref;
+          if (((_ref = response.captured) != null ? _ref.capturedTime : void 0) != null) {
+            response.captured.capturedTime = parseInt(response.captured.capturedTime);
+          }
+          return Database.db.collection('Portals').update({
+            _id: guid
+          }, {
+            $set: response
+          }, function() {
+            return Agent.resolveFromPortalDetail(response, callback);
+          });
+        },
+        onError: function(err, callback) {
+          logger.error("[Details] " + err.message);
+          return callback();
+        },
+        afterResponse: function(callback) {
+          logger.info("[Details] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]\t" + (Date.now() - t) + "ms"));
+          callback();
+          return outerCallback();
+        }
+      });
     },
     requestMissingPortals: function(callback) {
       return Database.db.collection('Portals').find({
@@ -74,8 +111,8 @@
         }
         if (portals) {
           return async.each(portals, function(po, callback) {
-            return requestPortalDetail(po._id, callback);
-          }, callback());
+            return Entity.requestPortalDetail(po._id, callback);
+          }, callback);
         } else {
           return callback();
         }
@@ -97,7 +134,7 @@
   createPortalEntity = function(id, timestamp, data, callback) {
     return createEntity('Portals', id, timestamp, data, function() {
       if (data.team !== 'NEUTRAL') {
-        return requestPortalDetail(id, function() {
+        return Entity.requestPortalDetail(id, function() {
           return callback && callback('portal');
         });
       } else {
@@ -115,47 +152,6 @@
   createLinkEntity = function(id, timestamp, data, callback) {
     return createEntity('Links', id, timestamp, data, function() {
       return callback && callback('link');
-    });
-  };
-
-  requestPortalDetail = function(guid, outerCallback) {
-    var t;
-    if (requested_guid[guid] != null) {
-      return outerCallback();
-    }
-    requested_guid[guid] = true;
-    t = 0;
-    return request.push({
-      action: 'getPortalDetails',
-      data: {
-        guid: guid
-      },
-      beforeRequest: function(callback) {
-        t = Date.now();
-        return callback();
-      },
-      onSuccess: function(response, callback) {
-        var _ref;
-        if (((_ref = response.captured) != null ? _ref.capturedTime : void 0) != null) {
-          response.captured.capturedTime = parseInt(response.captured.capturedTime);
-        }
-        return Database.db.collection('Portals').update({
-          _id: guid
-        }, {
-          $set: response
-        }, function() {
-          return Agent.resolveFromPortalDetail(response, callback);
-        });
-      },
-      onError: function(err, callback) {
-        logger.error("[Details] " + err.message);
-        return callback();
-      },
-      afterResponse: function(callback) {
-        logger.info("[Details] " + Math.round(request.done / request.max * 100).toString() + ("%\t[" + request.done + "/" + request.max + "]\t" + (Date.now() - t) + "ms"));
-        callback();
-        return outerCallback();
-      }
     });
   };
 

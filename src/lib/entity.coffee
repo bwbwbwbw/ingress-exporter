@@ -60,9 +60,52 @@ Entity = GLOBAL.Entity =
         
             main()
 
-    requestPortalDetail: (guid) ->
+    requestPortalDetail: (guid, outerCallback) ->
 
-        requestPortalDetail guid
+        # TODO: WTF?
+        return outerCallback() if requested_guid[guid]?
+
+        requested_guid[guid] = true
+
+        t = 0
+
+        request.push
+
+            action: 'getPortalDetails'
+            data:
+                guid: guid
+            beforeRequest: (callback) ->
+
+                    t = Date.now()
+                    callback()
+
+            onSuccess: (response, callback) ->
+
+                if response.captured?.capturedTime?
+                    response.captured.capturedTime = parseInt response.captured.capturedTime
+
+                Database.db.collection('Portals').update
+                    _id: guid
+                ,
+                    $set: response
+                , ->
+
+                    # resolve agent information
+                    Agent.resolveFromPortalDetail response, callback
+
+            onError: (err, callback) ->
+
+                logger.error "[Details] #{err.message}"
+                callback()
+
+            afterResponse: (callback) ->
+
+                logger.info "[Details] " +
+                    Math.round(request.done / request.max * 100).toString() +
+                    "%\t[#{request.done}/#{request.max}]\t#{Date.now() - t}ms"
+
+                callback()
+                outerCallback()
         
     requestMissingPortals: (callback) ->
 
@@ -85,9 +128,9 @@ Entity = GLOBAL.Entity =
 
                 async.each portals, (po, callback) ->
 
-                     requestPortalDetail po._id, callback
+                    Entity.requestPortalDetail po._id, callback
 
-                , callback()
+                , callback
 
             else
 
@@ -111,7 +154,7 @@ createPortalEntity = (id, timestamp, data, callback) ->
     createEntity 'Portals', id, timestamp, data, ->
 
         if data.team isnt 'NEUTRAL'
-            requestPortalDetail id, ->
+            Entity.requestPortalDetail id, ->
                 callback && callback 'portal'
         else
             callback && callback 'portal'
@@ -125,50 +168,3 @@ createLinkEntity = (id, timestamp, data, callback) ->
 
     createEntity 'Links', id, timestamp, data, ->
         callback && callback 'link'
-
-requestPortalDetail = (guid, outerCallback) ->
-
-    # TODO: WTF?
-    return outerCallback() if requested_guid[guid]?
-
-    requested_guid[guid] = true
-
-    t = 0
-
-    request.push
-
-        action: 'getPortalDetails'
-        data:
-            guid: guid
-        beforeRequest: (callback) ->
-
-                t = Date.now()
-                callback()
-
-        onSuccess: (response, callback) ->
-
-            if response.captured?.capturedTime?
-                response.captured.capturedTime = parseInt response.captured.capturedTime
-
-            Database.db.collection('Portals').update
-                _id: guid
-            ,
-                $set: response
-            , ->
-
-                # resolve agent information
-                Agent.resolveFromPortalDetail response, callback
-
-        onError: (err, callback) ->
-
-            logger.error "[Details] #{err.message}"
-            callback()
-
-        afterResponse: (callback) ->
-
-            logger.info "[Details] " +
-                Math.round(request.done / request.max * 100).toString() +
-                "%\t[#{request.done}/#{request.max}]\t#{Date.now() - t}ms"
-
-            callback()
-            outerCallback()
