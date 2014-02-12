@@ -1,53 +1,63 @@
 (function() {
-  var C, RequestFactory, async, cookies, needle, v, _i, _len, _ref;
+  var RequestFactory, async, cookie, cookieJar, cookies, pair, request, zlib, _i, _len, _ref;
 
-  needle = require('needle');
+  request = require('request');
+
+  zlib = require('zlib');
 
   async = require('async');
 
   cookies = {};
 
+  cookieJar = request.jar();
+
   _ref = Config.Auth.CookieRaw.split(';');
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    v = _ref[_i];
-    C = v.trim().split('=');
-    cookies[C[0]] = unescape(C[1]);
+    cookie = _ref[_i];
+    cookie = cookie.trim();
+    if (cookie.length === 0) {
+      continue;
+    }
+    pair = cookie.split('=');
+    cookies[pair[0]] = unescape(pair[1]);
+    cookieJar.setCookie(request.cookie(cookie), 'http://www.ingress.com');
   }
 
   RequestFactory = (function() {
     function RequestFactory() {
-      var _this = this;
       this.max = 0;
       this.done = 0;
       this.munge = null;
-      this.queue = async.queue(function(task, callback) {
-        return task.before(function() {
-          return _this.post('/r/' + task.m, task.d, function(error, response, body) {
-            if (error) {
-              console.log(error.stack);
-            }
-            if (task.emitted != null) {
-              console.warn('[DEBUG] Ignored reemitted event');
-              return;
-            }
-            task.emitted = true;
-            _this.done++;
-            if (error || !_this.processResponse(error, response, body)) {
-              task.error(error, function() {
+      this.queue = async.queue((function(_this) {
+        return function(task, callback) {
+          return task.before(function() {
+            return _this.post('/r/' + task.m, task.d, function(error, response, body) {
+              if (error) {
+                console.log(error.stack);
+              }
+              if (task.emitted != null) {
+                console.warn('[DEBUG] Ignored reemitted event');
+                return;
+              }
+              task.emitted = true;
+              _this.done++;
+              if (error || !_this.processResponse(error, response, body)) {
+                task.error(error, function() {
+                  return task.response(function() {
+                    return callback();
+                  });
+                });
+                return;
+              }
+              return task.success(body, function() {
                 return task.response(function() {
                   return callback();
                 });
               });
-              return;
-            }
-            return task.success(body, function() {
-              return task.response(function() {
-                return callback();
-              });
             });
           });
-        });
-      }, Config.Request.MaxParallel);
+        };
+      })(this), Config.Request.MaxParallel);
     }
 
     RequestFactory.prototype.generate = function(options) {
@@ -98,46 +108,48 @@
     };
 
     RequestFactory.prototype.post = function(url, data, callback) {
-      return needle.post('http://www.ingress.com' + url, JSON.stringify(data), {
-        compressed: true,
+      return request.post({
+        url: 'http://www.ingress.com' + url,
+        body: JSON.stringify(data),
+        jar: cookieJar,
+        encoding: null,
         timeout: 20000,
         headers: {
           'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Accept-Encoding': 'gzip,deflate',
           'Content-type': 'application/json; charset=utf-8',
-          'Cookie': Config.Auth.CookieRaw,
-          'Host': 'www.ingress.com',
           'Origin': 'http://www.ingress.com',
           'Referer': 'http://www.ingress.com/intel',
           'User-Agent': Config.Request.UserAgent,
           'X-CSRFToken': cookies.csrftoken
         }
-      }, callback);
+      }, this._gzipDecode(this._jsonDecode(callback)));
     };
 
     RequestFactory.prototype.get = function(url, callback) {
-      return needle.get('http://www.ingress.com' + url, {
-        compressed: true,
+      return request.get({
+        url: 'http://www.ingress.com' + url,
+        encoding: null,
         timeout: 20000,
         headers: {
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Cookie': Config.Auth.CookieRaw,
-          'Host': 'www.ingress.com',
+          'Accept-Encoding': 'gzip,deflate',
           'Cache-Control': 'max-age=0',
           'Origin': 'http://www.ingress.com',
           'Referer': 'http://www.ingress.com/intel',
           'User-Agent': Config.Request.UserAgent
         }
-      }, callback);
+      }, this._gzipDecode(callback));
     };
 
     RequestFactory.prototype.processResponse = function(error, response, body) {
       if (typeof body === 'string') {
-        if (body.indexOf('CSRF verification failed. Request aborted.' > -1)) {
+        if (body.indexOf('CSRF verification failed. Request aborted.') > -1) {
           logger.error('[Auth] CSRF verification failed. Please make sure that the cookie is right.');
           process.exit(0);
           return false;
         }
-        if (body.indexOf('User not authenticated' > -1)) {
+        if (body.indexOf('User not authenticated') > -1) {
           logger.error('[Auth] Authentication failed. Please update the cookie.');
           process.exit(0);
           return false;
@@ -146,6 +158,55 @@
         return false;
       }
       return true;
+    };
+
+    RequestFactory.prototype._gzipDecode = function(callback) {
+      return function(error, response, buffer) {
+        var encoding;
+        if (error != null) {
+          callback(error, response);
+          return;
+        }
+        if (response.headers['content-encoding'] != null) {
+          encoding = response.headers['content-encoding'];
+          if (encoding === 'gzip') {
+            zlib.gunzip(buffer, function(err, body) {
+              return callback(err, response, body && body.toString());
+            });
+            return;
+          } else if (encoding === 'deflate') {
+            zlib.inflate(buffer, function(err, body) {
+              return callback(err, response, body && body.toString());
+            });
+            return;
+          }
+        }
+        return callback(error, response, buffer && buffer.toString());
+      };
+    };
+
+    RequestFactory.prototype._jsonDecode = function(callback) {
+      return function(error, response, body) {
+        var decoded, err;
+        if (error != null) {
+          callback(error, response);
+          return;
+        }
+        if (response.headers['content-type'] != null) {
+          if (response.headers['content-type'].indexOf('json') > -1) {
+            try {
+              decoded = JSON.parse(body);
+            } catch (_error) {
+              err = _error;
+              callback(err, response, body);
+              return;
+            }
+            callback(err, response, decoded);
+            return;
+          }
+        }
+        return callback(error, response, body);
+      };
     };
 
     return RequestFactory;

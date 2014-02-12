@@ -1,12 +1,20 @@
-needle = require 'needle'
+request = require 'request'
+zlib = require 'zlib'
 async = require 'async'
 
 # Parse cookie
 cookies = {}
+cookieJar = request.jar()
 
-for v in Config.Auth.CookieRaw.split(';')
-    C = v.trim().split '='
-    cookies[C[0]] = unescape C[1]
+for cookie in Config.Auth.CookieRaw.split(';')
+    
+    cookie = cookie.trim()
+    continue if cookie.length is 0
+
+    pair = cookie.split '='
+    cookies[pair[0]] = unescape pair[1]
+
+    cookieJar.setCookie request.cookie(cookie), 'http://www.ingress.com'
 
 class RequestFactory
 
@@ -19,7 +27,7 @@ class RequestFactory
         @queue = async.queue (task, callback) =>
 
             task.before =>
-
+                
                 @post '/r/' + task.m, task.d, (error, response, body) =>
 
                     if error
@@ -86,49 +94,51 @@ class RequestFactory
 
     post: (url, data, callback) ->
 
-        needle.post 'http://www.ingress.com' + url, JSON.stringify(data),
+        request.post
 
-            compressed: true
+            url:        'http://www.ingress.com' + url
+            body:       JSON.stringify data
+            jar:        cookieJar
+            encoding:   null
             timeout:    20000
             headers:
                 'Accept': 'application/json, text/javascript, */*; q=0.01'
+                'Accept-Encoding': 'gzip,deflate'
                 'Content-type': 'application/json; charset=utf-8'
-                'Cookie': Config.Auth.CookieRaw
-                'Host': 'www.ingress.com'
                 'Origin': 'http://www.ingress.com'
                 'Referer': 'http://www.ingress.com/intel'
                 'User-Agent': Config.Request.UserAgent
                 'X-CSRFToken': cookies.csrftoken
 
-        , callback
+        , @_gzipDecode @_jsonDecode callback
 
     get: (url, callback) ->
 
-        needle.get 'http://www.ingress.com' + url, 
+        request.get
 
-            compressed: true
+            url:        'http://www.ingress.com' + url
+            encoding:   null
             timeout:    20000
             headers:
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-                'Cookie': Config.Auth.CookieRaw
-                'Host': 'www.ingress.com'
+                'Accept-Encoding': 'gzip,deflate'
                 'Cache-Control': 'max-age=0'
                 'Origin': 'http://www.ingress.com'
                 'Referer': 'http://www.ingress.com/intel'
                 'User-Agent': Config.Request.UserAgent
 
-        , callback
+        , @_gzipDecode callback
 
     processResponse: (error, response, body) ->
 
         if typeof body is 'string'
 
-            if body.indexOf 'CSRF verification failed. Request aborted.' > -1
+            if body.indexOf('CSRF verification failed. Request aborted.') > -1
                 logger.error '[Auth] CSRF verification failed. Please make sure that the cookie is right.'
                 process.exit 0
                 return false
 
-            if body.indexOf 'User not authenticated' > -1
+            if body.indexOf('User not authenticated') > -1
                 logger.error '[Auth] Authentication failed. Please update the cookie.'
                 process.exit 0
                 return false
@@ -137,6 +147,55 @@ class RequestFactory
             return false
 
         true
+
+    _gzipDecode: (callback) ->
+
+        return (error, response, buffer) ->
+
+            if error?
+                callback error, response
+                return
+
+            if response.headers['content-encoding']?
+
+                encoding = response.headers['content-encoding']
+
+                if encoding is 'gzip'
+
+                    zlib.gunzip buffer, (err, body) ->
+                        callback err, response, body && body.toString()
+                    return
+
+                else if encoding is 'deflate'
+
+                    zlib.inflate buffer, (err, body) ->
+                        callback err, response, body && body.toString()
+                    return
+
+            callback error, response, buffer && buffer.toString()
+
+    _jsonDecode: (callback) ->
+
+        return (error, response, body) ->
+
+            if error?
+                callback error, response
+                return
+
+            if response.headers['content-type']?
+
+                if response.headers['content-type'].indexOf('json') > -1
+
+                    try
+                        decoded = JSON.parse body
+                    catch err
+                        callback err, response, body
+                        return
+
+                    callback err, response, decoded
+                    return
+
+            callback error, response, body
 
 module.exports = ->
 
