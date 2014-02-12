@@ -1,28 +1,27 @@
+http = require 'http'
 request = require 'request'
 zlib = require 'zlib'
 async = require 'async'
-
-# Parse cookie
-cookies = {}
-cookieJar = request.jar()
-
-for cookie in Config.Auth.CookieRaw.split(';')
-    
-    cookie = cookie.trim()
-    continue if cookie.length is 0
-
-    pair = cookie.split '='
-    cookies[pair[0]] = unescape pair[1]
-
-    cookieJar.setCookie request.cookie(cookie), 'http://www.ingress.com'
 
 class RequestFactory
 
     constructor: ->
 
-        @max   = 0
-        @done  = 0
-        @munge = null
+        @max        = 0
+        @done       = 0
+        @munge      = null
+        @cookies    = {}
+        @cookieJar  = null
+
+        for cookie in Config.Auth.CookieRaw.split(';')
+            
+            cookie = cookie.trim()
+            continue if cookie.length is 0
+
+            pair = cookie.split '='
+            @cookies[pair[0]] = unescape pair[1]
+
+        @resetCookies()
 
         @queue = async.queue (task, callback) =>
 
@@ -54,6 +53,15 @@ class RequestFactory
                             callback()
 
         , Config.Request.MaxParallel
+
+    resetCookies: ->
+
+        @cookieJar = request.jar()
+
+        for cookie in Config.Auth.CookieRaw.split(';')
+            cookie = cookie.trim()
+            if cookie.length isnt 0
+                @cookieJar.setCookie request.cookie(cookie), 'http://www.ingress.com'
 
     generate: (options) ->
 
@@ -98,7 +106,8 @@ class RequestFactory
 
             url:        'http://www.ingress.com' + url
             body:       JSON.stringify data
-            jar:        cookieJar
+            jar:        @cookieJar
+            maxSockets: 50
             encoding:   null
             timeout:    20000
             headers:
@@ -108,7 +117,7 @@ class RequestFactory
                 'Origin': 'http://www.ingress.com'
                 'Referer': 'http://www.ingress.com/intel'
                 'User-Agent': Config.Request.UserAgent
-                'X-CSRFToken': cookies.csrftoken
+                'X-CSRFToken': @cookies.csrftoken
 
         , @_gzipDecode @_jsonDecode callback
 

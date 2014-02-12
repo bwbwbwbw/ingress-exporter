@@ -1,5 +1,7 @@
 (function() {
-  var RequestFactory, async, cookie, cookieJar, cookies, pair, request, zlib, _i, _len, _ref;
+  var RequestFactory, async, http, request, zlib;
+
+  http = require('http');
 
   request = require('request');
 
@@ -7,27 +9,25 @@
 
   async = require('async');
 
-  cookies = {};
-
-  cookieJar = request.jar();
-
-  _ref = Config.Auth.CookieRaw.split(';');
-  for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-    cookie = _ref[_i];
-    cookie = cookie.trim();
-    if (cookie.length === 0) {
-      continue;
-    }
-    pair = cookie.split('=');
-    cookies[pair[0]] = unescape(pair[1]);
-    cookieJar.setCookie(request.cookie(cookie), 'http://www.ingress.com');
-  }
-
   RequestFactory = (function() {
     function RequestFactory() {
+      var cookie, pair, _i, _len, _ref;
       this.max = 0;
       this.done = 0;
       this.munge = null;
+      this.cookies = {};
+      this.cookieJar = null;
+      _ref = Config.Auth.CookieRaw.split(';');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cookie = _ref[_i];
+        cookie = cookie.trim();
+        if (cookie.length === 0) {
+          continue;
+        }
+        pair = cookie.split('=');
+        this.cookies[pair[0]] = unescape(pair[1]);
+      }
+      this.resetCookies();
       this.queue = async.queue((function(_this) {
         return function(task, callback) {
           return task.before(function() {
@@ -59,6 +59,23 @@
         };
       })(this), Config.Request.MaxParallel);
     }
+
+    RequestFactory.prototype.resetCookies = function() {
+      var cookie, _i, _len, _ref, _results;
+      this.cookieJar = request.jar();
+      _ref = Config.Auth.CookieRaw.split(';');
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cookie = _ref[_i];
+        cookie = cookie.trim();
+        if (cookie.length !== 0) {
+          _results.push(this.cookieJar.setCookie(request.cookie(cookie), 'http://www.ingress.com'));
+        } else {
+          _results.push(void 0);
+        }
+      }
+      return _results;
+    };
 
     RequestFactory.prototype.generate = function(options) {
       var activeMunge, methodName, post_data, versionStr;
@@ -111,7 +128,8 @@
       return request.post({
         url: 'http://www.ingress.com' + url,
         body: JSON.stringify(data),
-        jar: cookieJar,
+        jar: this.cookieJar,
+        maxSockets: 50,
         encoding: null,
         timeout: 20000,
         headers: {
@@ -121,7 +139,7 @@
           'Origin': 'http://www.ingress.com',
           'Referer': 'http://www.ingress.com/intel',
           'User-Agent': Config.Request.UserAgent,
-          'X-CSRFToken': cookies.csrftoken
+          'X-CSRFToken': this.cookies.csrftoken
         }
       }, this._gzipDecode(this._jsonDecode(callback)));
     };
