@@ -24,6 +24,8 @@ Agent = GLOBAL.Agent =
 
     resolveFromPortalDetail: (portal, callback) ->
 
+        return callback() if not portal.controllingTeam?
+
         agentTeam = Agent.strToTeam portal.controllingTeam.team
 
         async.each portal.resonatorArray.resonators, (resonator, callback) ->

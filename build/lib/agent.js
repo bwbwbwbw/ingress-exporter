@@ -31,6 +31,9 @@
     },
     resolveFromPortalDetail: function(portal, callback) {
       var agentTeam;
+      if (portal.controllingTeam == null) {
+        return callback();
+      }
       agentTeam = Agent.strToTeam(portal.controllingTeam.team);
       return async.each(portal.resonatorArray.resonators, function(resonator, callback) {
         if (resonator !== null) {
