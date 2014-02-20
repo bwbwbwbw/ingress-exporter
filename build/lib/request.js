@@ -41,16 +41,15 @@
               }
               task.emitted = true;
               _this.done++;
-              if (error || !_this.processResponse(error, response, body)) {
-                task.error(error, function() {
-                  return task.response(function() {
-                    return callback();
-                  });
-                });
-                return;
+              if (!error) {
+                if (body.error != null) {
+                  error = new Error(body.error);
+                } else {
+                  error = _this.processResponse(error, response, body);
+                }
               }
-              if (body.error != null) {
-                task.error(new Error(body.error), function() {
+              if (error) {
+                task.error(error, function() {
                   return task.response(function() {
                     return callback();
                   });
@@ -182,10 +181,9 @@
           process.exit(0);
           return false;
         }
-        logger.error('[DEBUG] Unknown server response');
-        return false;
+        return new Error('Unknown server response');
       }
-      return true;
+      return null;
     };
 
     RequestFactory.prototype._gzipDecode = function(callback) {

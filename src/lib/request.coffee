@@ -40,17 +40,15 @@ class RequestFactory
 
                     @done++
 
-                    if error or not @processResponse error, response, body
+                    if not error
+                        if body.error?
+                            error = new Error(body.error)
+                        else
+                            error = @processResponse error, response, body
+
+                    if error
 
                         task.error error, ->
-                            task.response ->
-                                callback()
-
-                        return
-
-                    if body.error?
-
-                        task.error new Error(body.error), ->
                             task.response ->
                                 callback()
 
@@ -130,7 +128,7 @@ class RequestFactory
         , @_gzipDecode @_jsonDecode callback
 
     get: (url, callback) ->
-        
+
         request.get
 
             url:        'http://www.ingress.com' + url
@@ -162,10 +160,9 @@ class RequestFactory
                 process.exit 0
                 return false
 
-            logger.error '[DEBUG] Unknown server response'
-            return false
+            return new Error 'Unknown server response'
 
-        true
+        return null
 
     _gzipDecode: (callback) ->
 
