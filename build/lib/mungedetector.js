@@ -88,8 +88,14 @@
       action: 'getGameScore',
       data: {},
       onSuccess: function(response, callback) {
-        callback();
-        return tryCallback && tryCallback();
+        var _ref;
+        if ((response != null ? (_ref = response.result) != null ? _ref.resistanceScore : void 0 : void 0) == null) {
+          callback();
+          return tryCallback && tryCallback(err);
+        } else {
+          callback();
+          return tryCallback && tryCallback();
+        }
       },
       onError: function(err, callback) {
         callback();

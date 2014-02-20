@@ -49,6 +49,14 @@
                 });
                 return;
               }
+              if (body.error != null) {
+                task.error(new Error(body.error), function() {
+                  return task.response(function() {
+                    return callback();
+                  });
+                });
+                return;
+              }
               return task.success(body, function() {
                 return task.response(function() {
                   return callback();
@@ -147,6 +155,8 @@
     RequestFactory.prototype.get = function(url, callback) {
       return request.get({
         url: 'http://www.ingress.com' + url,
+        jar: this.cookieJar,
+        maxSockets: 50,
         encoding: null,
         timeout: 20000,
         headers: {

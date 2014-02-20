@@ -28,7 +28,7 @@ Entity = GLOBAL.Entity =
             else if data.type is 'edge'
                 createLinkEntity id, timestamp, data, callback
             else
-                logger.warn "Unknown entity type, id=#{id}, type=#{data.type}"
+                logger.warn "[Entity] Unknown entity type, id=#{id}, type=#{data.type}"
                 callback && callback()
 
         

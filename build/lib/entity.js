@@ -27,7 +27,7 @@
         } else if (data.type === 'edge') {
           return createLinkEntity(id, timestamp, data, callback);
         } else {
-          logger.warn("Unknown entity type, id=" + id + ", type=" + data.type);
+          logger.warn("[Entity] Unknown entity type, id=" + id + ", type=" + data.type);
           return callback && callback();
         }
       };

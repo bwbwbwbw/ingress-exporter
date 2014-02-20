@@ -48,6 +48,14 @@ class RequestFactory
 
                         return
 
+                    if body.error?
+
+                        task.error new Error(body.error), ->
+                            task.response ->
+                                callback()
+
+                        return
+
                     task.success body, ->
                         task.response ->
                             callback()
@@ -122,10 +130,12 @@ class RequestFactory
         , @_gzipDecode @_jsonDecode callback
 
     get: (url, callback) ->
-
+        
         request.get
 
             url:        'http://www.ingress.com' + url
+            jar:        @cookieJar
+            maxSockets: 50
             encoding:   null
             timeout:    20000
             headers:

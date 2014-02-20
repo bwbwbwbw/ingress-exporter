@@ -106,8 +106,15 @@ tryMungeSet = (munge, tryCallback) ->
         data:   {}
         onSuccess: (response, callback) ->
 
-            callback()
-            tryCallback && tryCallback()
+            if not response?.result?.resistanceScore?
+                
+                callback()
+                tryCallback && tryCallback err
+
+            else
+
+                callback()
+                tryCallback && tryCallback()
 
         onError: (err, callback) ->
             
