@@ -205,59 +205,57 @@
       });
     }
     return async.eachLimit(list, Config.Database.MaxParallel, function(t, callback) {
-      var tile, update;
-      id = t.id;
-      tile = t.tile;
-      update = function() {
+      return (function(update) {
+        if ((t.tile.error != null) && Tile.data[t.id].status === STATUS_PENDING) {
+          if (t.tile.error === 'TIMEOUT') {
+            Tile.data[t.id].status = STATUS_TIMEOUT;
+            timeoutTiles.push(id);
+          } else {
+            Tile.data[t.id].status = STATUS_FAIL;
+            Tile.data[t.id].fails++;
+            if (Tile.data[t.id].fails > Config.Tiles.MaxFailRetry) {
+              logger.error("PANIC: tile id=" + id);
+              Tile.data[t.id].status = STATUS_PANIC;
+              panicTiles.push(t.id);
+            } else {
+              failTiles.push(t.id);
+            }
+          }
+          return update();
+        } else {
+          Tile.data[t.id].status = STATUS_COMPLETE;
+          Tile.data[t.id].portals = 0;
+          if (t.tile.gameEntities != null) {
+            return async.each(t.tile.gameEntities, function(entity, callback) {
+              if (t.tile.deletedGameEntityGuids.indexOf(entity[0] === -1)) {
+                return Entity.add(entity[0], entity[1], entity[2], function(type) {
+                  if (type === 'portal') {
+                    Tile.data[id].portals++;
+                  }
+                  return callback();
+                });
+              } else {
+                return callback();
+              }
+            }, function(err) {
+              return update();
+            });
+          } else {
+            return update();
+          }
+        }
+      })(function() {
         var updater;
         updater = {
           $set: {
-            status: Tile.data[id].status,
-            portals: Tile.data[id].portals
+            status: Tile.data[t.id].status,
+            portals: Tile.data[t.id].portals
           }
         };
         return Database.db.collection('Tiles').update({
-          _id: id
+          _id: t.id
         }, updater, callback);
-      };
-      if ((tile.error != null) && Tile.data[id].status === STATUS_PENDING) {
-        if (tile.error === 'TIMEOUT') {
-          Tile.data[id].status = STATUS_TIMEOUT;
-          timeoutTiles.push(id);
-        } else {
-          Tile.data[id].status = STATUS_FAIL;
-          Tile.data[id].fails++;
-          if (Tile.data[id].fails > Config.Tiles.MaxFailRetry) {
-            logger.error("PANIC: tile id=" + id);
-            Tile.data[id].status = STATUS_PANIC;
-            panicTiles.push(id);
-          } else {
-            failTiles.push(id);
-          }
-        }
-        return update();
-      } else {
-        Tile.data[id].status = STATUS_COMPLETE;
-        Tile.data[id].portals = 0;
-        if (tile.gameEntities != null) {
-          return async.each(tile.gameEntities, function(entity, callback) {
-            if (tile.deletedGameEntityGuids.indexOf(entity[0] === -1)) {
-              return Entity.add(entity[0], entity[1], entity[2], function(type) {
-                if (type === 'portal') {
-                  Tile.data[id].portals++;
-                }
-                return callback();
-              });
-            } else {
-              return callback();
-            }
-          }, function(err) {
-            return update();
-          });
-        } else {
-          return update();
-        }
-      }
+      });
     }, callback);
   };
 

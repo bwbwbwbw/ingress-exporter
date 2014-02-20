@@ -197,66 +197,65 @@ processSuccessTileResponse = (response, tiles, callback) ->
 
     async.eachLimit list, Config.Database.MaxParallel, (t, callback) ->
 
-        id    = t.id
-        tile  = t.tile
+        ((update) ->
+        
+            if t.tile.error? and Tile.data[t.id].status is STATUS_PENDING
 
-        update = ->
+                # FAIL / TIMEOUT
+                if t.tile.error is 'TIMEOUT'
 
-            updater = 
-                $set:
-                    status:  Tile.data[id].status
-                    portals: Tile.data[id].portals
+                    Tile.data[t.id].status = STATUS_TIMEOUT
+                    timeoutTiles.push id
 
-            Database.db.collection('Tiles').update {_id: id}, updater, callback
-
-        if tile.error? and Tile.data[id].status is STATUS_PENDING
-
-            # FAIL / TIMEOUT
-            if tile.error is 'TIMEOUT'
-
-                Tile.data[id].status = STATUS_TIMEOUT
-                timeoutTiles.push id
-
-            else
-
-                Tile.data[id].status = STATUS_FAIL
-                Tile.data[id].fails++
-
-                if Tile.data[id].fails > Config.Tiles.MaxFailRetry
-                    
-                    logger.error "PANIC: tile id=#{id}"
-                    Tile.data[id].status = STATUS_PANIC  # no more try
-                    panicTiles.push id
-                
                 else
 
-                    failTiles.push id
+                    Tile.data[t.id].status = STATUS_FAIL
+                    Tile.data[t.id].fails++
 
-            return update()
-        
-        else
-
-            Tile.data[id].status = STATUS_COMPLETE
-            Tile.data[id].portals = 0
-
-            if tile.gameEntities?
-
-                async.each tile.gameEntities, (entity, callback) ->
-
-                    if tile.deletedGameEntityGuids.indexOf entity[0] is -1
-                        Entity.add entity[0], entity[1], entity[2], (type) ->
-                            Tile.data[id].portals++ if type is 'portal'
-                            callback()
+                    if Tile.data[t.id].fails > Config.Tiles.MaxFailRetry
+                        
+                        logger.error "PANIC: tile id=#{id}"
+                        Tile.data[t.id].status = STATUS_PANIC  # no more try
+                        panicTiles.push t.id
+                    
                     else
-                        callback()
 
-                , (err) ->
+                        failTiles.push t.id
+
+                return update()
+            
+            else
+
+                Tile.data[t.id].status = STATUS_COMPLETE
+                Tile.data[t.id].portals = 0
+
+                if t.tile.gameEntities?
+
+                    async.each t.tile.gameEntities, (entity, callback) ->
+
+                        if t.tile.deletedGameEntityGuids.indexOf entity[0] is -1
+                            Entity.add entity[0], entity[1], entity[2], (type) ->
+                                Tile.data[id].portals++ if type is 'portal'
+                                callback()
+                        else
+                            callback()
+
+                    , (err) ->
+
+                        return update()
+
+                else
 
                     return update()
 
-            else
+        ) () ->
 
-                return update()
+            updater = 
+                $set:
+                    status:  Tile.data[t.id].status
+                    portals: Tile.data[t.id].portals
+
+            Database.db.collection('Tiles').update {_id: t.id}, updater, callback
 
     , callback
 
