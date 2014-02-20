@@ -28,6 +28,9 @@ require './lib/database.js'
 require './lib/agent.js'
 require './lib/entity.js'
 require './lib/mungedetector.js'
+require './lib/accountinfo.js'
+
+require 'color'
 
 GLOBAL.argv = require('optimist').argv
 async = require('async')
@@ -45,6 +48,10 @@ bootstrap = ->
     async.series [
 
         (callback) ->
+
+            AccountInfo.fetch callback
+
+        , (callback) ->
 
             MungeDetector.detect callback
 

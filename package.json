@@ -16,6 +16,7 @@
         "moment": "*",
         "winston": "*",
         "optimist": "*",
-        "require-all": "*"
+        "require-all": "*",
+        "color": "*"
     }
 }
