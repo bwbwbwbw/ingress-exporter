@@ -69,7 +69,6 @@
           return callback();
         }
       }, function(err) {
-        console.log('[end]');
         return Database.db.close();
       });
     });

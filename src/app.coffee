@@ -70,7 +70,6 @@ bootstrap = ->
 
         , (err) ->
             
-            console.log '[end]'
             Database.db.close()
 
 #######################
