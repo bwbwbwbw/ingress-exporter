@@ -49,11 +49,11 @@ bootstrap = ->
 
         (callback) ->
 
-            AccountInfo.fetch callback
+            MungeDetector.detect callback
 
         , (callback) ->
 
-            MungeDetector.detect callback
+            AccountInfo.fetch callback
 
         , (callback) ->
 

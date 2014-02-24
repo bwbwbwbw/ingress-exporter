@@ -55,9 +55,9 @@
   bootstrap = function() {
     return async.series([
       function(callback) {
-        return AccountInfo.fetch(callback);
-      }, function(callback) {
         return MungeDetector.detect(callback);
+      }, function(callback) {
+        return AccountInfo.fetch(callback);
       }, function(callback) {
         return Agent.initFromDatabase(callback);
       }
