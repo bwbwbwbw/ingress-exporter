@@ -15,6 +15,8 @@ Agent = GLOBAL.Agent =
 
         Database.db.collection('Agent').find().toArray (err, agents) ->
 
+            # ignore error
+            
             Agent.data[agent._id] = agent for agent in agents if agents
             callback && callback()
 
@@ -98,8 +100,8 @@ Agent = GLOBAL.Agent =
         ).toArray (err, portals) ->
 
             if err
-                callback err
-                return
+                logger.error '[AgentResolver] Failed to fetch portal list: %s', err.message
+                return callback()
 
             # TODO: reduce memory usage
             if portals?

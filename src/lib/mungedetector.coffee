@@ -20,6 +20,10 @@ MungeDetector = GLOBAL.MungeDetector =
 
                 Database.db.collection('MungeData').findOne {_id: 'munge'}, (err, record) ->
 
+                    if err
+                        logger.error '[MungeDetector] Failed to read mungedata from database: %s', err.message
+                        return callback err
+
                     if record?
                         Munges.Data = record.data
                         Munges.ActiveSet = record.index
@@ -82,7 +86,12 @@ MungeDetector = GLOBAL.MungeDetector =
                     , {upsert: true}
                     , (err) ->
                         
-                        logger.info '[MungeDetector] Munge data saved.'
+                        # ignore error
+
+                        if err
+                            logger.error '[MungeDetector] Failed to save mungedata: %s', err.message
+                        else
+                            logger.info '[MungeDetector] Munge data saved.'
 
                         callback && callback()
                         return
@@ -95,7 +104,7 @@ MungeDetector = GLOBAL.MungeDetector =
             else
 
                 logger.error '[MungeDetector] Could not detect munge data. Tasks are terminated.'
-                process.exit 0
+                callback new Error('Munge detection failed')
 
 tryMungeSet = (munge, tryCallback) ->
 

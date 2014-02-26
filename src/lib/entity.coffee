@@ -39,19 +39,19 @@ Entity = GLOBAL.Entity =
                 (callback) ->
                     
                     Database.db.collection('Portals').count {}, (err, count) ->
-                        Entity.counter.portals = count
+                        Entity.counter.portals = count if not err
                         callback()
 
                 , (callback) ->
 
                     Database.db.collection('Fields').count {}, (err, count) ->
-                        Entity.counter.fields = count
+                        Entity.counter.fields = count if not err
                         callback()
 
                 , (callback) ->
                     
                     Database.db.collection('Links').count {}, (err, count) ->
-                        Entity.counter.links = count
+                        Entity.counter.links = count if not err
                         callback()
 
             ], main
@@ -88,7 +88,10 @@ Entity = GLOBAL.Entity =
                     _id: guid
                 ,
                     $set: response
-                , ->
+                , (err) ->
+
+                    if err
+                        logger.error '[Details] Failed to update portal detail (guid=%s) in database: %s', guid, err.message
 
                     # resolve agent information
                     Agent.resolveFromPortalDetail response, callback
@@ -121,8 +124,8 @@ Entity = GLOBAL.Entity =
         ).toArray (err, portals) ->
 
             if err
-                callback err
-                return
+                logger.error '[Details] Failed to fetch missing portal list: %s', err.message
+                return callback()
 
             if portals
 
@@ -147,7 +150,13 @@ createEntity = (collection, id, timestamp, data, callback) ->
             data
     ,
         upsert: true
-    , callback
+    , (err) ->
+
+        if err
+            logger.error '[Entity] Failed to insert entity (id=%s) into database: %s', id, err.message
+
+        # ignore error
+        callback()
 
 createPortalEntity = (id, timestamp, data, callback) ->
 

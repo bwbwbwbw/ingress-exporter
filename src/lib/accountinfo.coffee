@@ -37,8 +37,7 @@ AccountInfo = GLOBAL.AccountInfo =
 
             if err
                 logger.error '[AccountInfo] %s', err.message
-                process.exit 0
-                return
+                return callback err
 
             logger.info '[AccountInfo] %s (%s)', player.nickname, player.team
             logger.warn '[AccountInfo] %s', 'Please immediately press Ctrl+C if you are using an incorrect account.'.yellow.inverse
