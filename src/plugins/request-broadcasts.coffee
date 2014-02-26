@@ -58,8 +58,8 @@ Chat =
                     minLngE6:        Math.round(Config.Region.SouthWest.Lng * 1e6)
                     maxLatE6:        Math.round(Config.Region.NorthEast.Lat * 1e6)
                     maxLngE6:        Math.round(Config.Region.NorthEast.Lng * 1e6)
-                    minTimestampMs:  TSmin
-                    maxTimestampMs:  TSmax
+                    minTimestampMs:  TSmin - 1000
+                    maxTimestampMs:  TSmax + 1000
                     chatTab:         type
                 status: STATUS_PENDING
                 _id:    new ObjectID()
@@ -73,11 +73,14 @@ Chat =
 
         , ->
 
+            updater =
+                $set: {}
+
+            updater.$set["timestamp#{type}"] = timestampMax
+
             Database.db.collection('chat_data').update
                 _id: 'last_task'
-            ,    
-                $set:
-                    'timestamp_' + type: timestampMax
+            , updater
             ,
                 upsert: true
             , (err) ->
@@ -231,7 +234,6 @@ parseChatResponse = (type, taskId, response, callback) ->
         if response.length < Config.Chat.FetchItemCount
 
             # no more messages: remove task
-            
             delete Chat.tasks[taskId]
             Chat.length--
 
@@ -255,7 +257,7 @@ parseChatResponse = (type, taskId, response, callback) ->
                 $set:
                     status: STATUS_NOTCOMPLETE
                     'data.maxTimestampMs': maxTimestamp
-            , ->
+            , (err) ->
 
                 # insert into queue again
                 Chat.request taskId
