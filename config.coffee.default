@@ -4,10 +4,7 @@ Config = GLOBAL.Config =
 
         CookieRaw: 'GOOGAPPUID=xxx; ACSID=xxx; csrftoken=xxx;'
 
-    # Warning: a higher portal level will cause bigger
-    # tile region (you may get much more then you want)
-    # eg, min=8 may cover the whole China
-    MinPortalLevel: 0
+    ZoomLevel: 17
 
     Region:
 

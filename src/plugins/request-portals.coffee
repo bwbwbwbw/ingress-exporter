@@ -105,24 +105,26 @@ Tile =
             new L.LatLng(Config.Region.NorthEast.Lat, Config.Region.NorthEast.Lng)
         )
 
-        x1 = Utils.lngToTile bounds.getWest(), Config.MinPortalLevel
-        x2 = Utils.lngToTile bounds.getEast(), Config.MinPortalLevel
-        y1 = Utils.latToTile bounds.getNorth(), Config.MinPortalLevel
-        y2 = Utils.latToTile bounds.getSouth(), Config.MinPortalLevel
+        tileParams = Utils.getMapZoomTileParameters Config.ZoomLevel
+
+        x1 = Utils.lngToTile bounds.getWest(), tileParams
+        x2 = Utils.lngToTile bounds.getEast(), tileParams
+        y1 = Utils.latToTile bounds.getNorth(), tileParams
+        y2 = Utils.latToTile bounds.getSouth(), tileParams
 
         ret = []
 
         for y in [y1 .. y2]
             for x in [x1 .. x2]
 
-                tileId = Utils.pointToTileId Config.MinPortalLevel, x, y
+                tileId = Utils.pointToTileId tileParams, x, y
                 ret.push tileId
 
         return ret
 
     prepareFromDatabase: (callback) ->
 
-        logger.info "[Portals] Preparing from database: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
+        logger.info "[Portals] Preparing from database: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Utils.getMapZoomTileParameters(Config.ZoomLevel).level}"
 
         # get all tiles
         tiles = Tile.calculateTileKeys()
@@ -150,7 +152,7 @@ Tile =
 
     prepareNew: (callback) ->
 
-        logger.info "[Portals] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Config.MinPortalLevel}"
+        logger.info "[Portals] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Utils.getMapZoomTileParameters(Config.ZoomLevel).level}"
         
         tiles = Tile.calculateTileKeys()
         Tile.list.push id for id in tiles
