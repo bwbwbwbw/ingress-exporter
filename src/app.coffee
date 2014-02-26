@@ -55,18 +55,20 @@ bootstrap = ->
 
             Agent.initFromDatabase callback
 
-    ], ->
+    ], (err) ->
 
-        async.eachSeries pluginList, (plugin, callback) ->
-            
-            if plugin.onBootstrap
-                plugin.onBootstrap callback
-            else
-                callback()
+        if not err
 
-        , (err) ->
-            
-            Database.db.close()
+            async.eachSeries pluginList, (plugin, callback) ->
+                
+                if plugin.onBootstrap
+                    plugin.onBootstrap callback
+                else
+                    callback()
+
+            , (err) ->
+                
+                Database.db.close()
 
 #######################
 # main
