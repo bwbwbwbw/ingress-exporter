@@ -58,6 +58,6 @@ module.exports = function (grunt)
      grunt.loadNpmTasks('grunt-contrib-watch');
 
      grunt.registerTask('default', ['copy', 'coffee']);
-     grunt.registerTask('watch', ['copy', 'coffee', 'watch']);
+     grunt.registerTask('debug', ['copy', 'coffee', 'watch']);
 
 };
