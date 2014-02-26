@@ -41,7 +41,7 @@ module.exports = function (grunt)
 
                project: {
                     files: ['src/**/*', 'config.coffee'],
-                    tasks: ['coffee']
+                    tasks: ['copy', 'coffee']
                }
 
           }

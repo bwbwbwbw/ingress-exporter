@@ -19,7 +19,11 @@ grunt
 
 # Usage
 
-### Basic
+```
+node build/app.js
+```
+
+### Basic options
 
 ```
 --portals     Request portals information
@@ -30,7 +34,7 @@ grunt
 ### Request portals and broadcasts options
 
 ```
---new  -n     Start new requests (otherwise continue)
+--new    -n   Start new requests (otherwise continue)
 ```
 
 ### Export options
