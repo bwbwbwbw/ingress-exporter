@@ -24,11 +24,6 @@ module.exports = function (grunt)
           coffee: {
 
                project: {
-                    /*
-                    options: {
-                         sourceMap: true
-                    },
-                    */
                     files: [{
                          expand: true,
                          cwd: 'src/',
