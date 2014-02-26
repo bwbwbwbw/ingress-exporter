@@ -3,24 +3,45 @@ ingress-exporter
 
 Export all portals, links, fields and system broadcasts in a specific geo-region.
 
-```bash
-npm install
-node build/app.js --portals
-```
-
 # Requirement
 
 Node.js > 0.10
 
 MongoDB > 2.2
 
+# Install
+
+```bash
+npm install
+npm install -g grunt-cli
+grunt
+```
+
 # Usage
+
+### Basic
 
 ```
 --portals     Request portals information
-
---new  -n     Start a new request
+--broadcasts  Request public broadcast messages
+--export      Export portals to csv
 ```
+
+### Request portals and broadcasts options
+
+```
+--new  -n     Start new requests (otherwise continue)
+```
+
+### Export options
+
+```
+--title  -t   Include title
+--latlng -l   Include lat & lng
+--id     -i   Include guid
+--image  -I   Include image URI
+```
+
 
 # Warning
 
