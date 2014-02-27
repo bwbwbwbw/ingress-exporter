@@ -49,7 +49,10 @@ bootstrap = ->
 
         , (callback) ->
 
-            AccountInfo.fetch callback
+            if not argv.noplayerinfo
+                AccountInfo.fetch callback
+            else
+                callback()
 
         , (callback) ->
 
