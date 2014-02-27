@@ -215,13 +215,13 @@ class BroadcastTasker
             delete @tasks[taskId]
             @length--
 
-            @emitter.emit 'taskcompleted', taskId
-
             Database.db.collection('chat_queue').remove
                 _id: new ObjectID(taskId)
             ,
                 single: true
-            , parseCompleteCallback
+            , =>
+                @emitter.emit 'taskcompleted', taskId
+                parseCompleteCallback()
 
         else
 
