@@ -199,6 +199,7 @@ class BroadcastTasker
             onError: (err, callback) =>
 
                 @emitter.emit 'error', err
+                @requestTask taskId
                 callback()
 
             afterResponse: (callback) =>
