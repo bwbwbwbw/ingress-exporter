@@ -74,6 +74,7 @@ bootstrap = (callback) ->
 
         broadcast.on 'taskcompleted', ->
             taskCompleted++
+            callback() if dbQueue.length() is 0
 
         broadcast.on 'beforestart', ->
             logger.info "[Faction] Begin requesting..."
