@@ -60,7 +60,7 @@ class RequestFactory
 
         , Config.Request.MaxParallel
 
-    resetCookies: ->
+    resetCookies: =>
 
         @cookieJar = request.jar()
 
@@ -69,7 +69,7 @@ class RequestFactory
             if cookie.length isnt 0
                 @cookieJar.setCookie request.cookie(cookie), 'http://www.ingress.com'
 
-    generate: (options) ->
+    generate: (options) =>
 
         if @munge is null
             activeMunge = Munges.Data[Munges.ActiveSet]
@@ -94,19 +94,19 @@ class RequestFactory
             response: options.afterResponse || (callback) -> callback()
         }
 
-    push: (options) ->
+    push: (options) =>
 
         @max++
         task = @generate options
         @queue.push task
     
-    unshift: (options) ->
+    unshift: (options) =>
 
         @max++
         task = @generate options
         @queue.unshift task
 
-    post: (url, data, callback) ->
+    post: (url, data, callback) =>
 
         request.post
 
@@ -127,7 +127,7 @@ class RequestFactory
 
         , @_gzipDecode @_jsonDecode callback
 
-    get: (url, callback) ->
+    get: (url, callback) =>
 
         request.get
 
