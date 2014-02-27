@@ -8,6 +8,9 @@ messageReceived = 0
 messageInserted = 0
 noMoreMessages  = false
 
+taskCount     = 0
+taskCompleted = 0
+
 module.exports = 
 
     onBootstrap: (callback) ->
@@ -61,12 +64,16 @@ bootstrap = (callback) ->
 
         broadcast.on 'response', (done, max) ->
             logger.info "[Broadcasts] " +
-                    Math.round(done / max * 100).toString() +
-                    "%\t[#{done}/#{max}]" +
+                    Math.round(taskCompleted / taskCount * 100) + 
+                    "% [#{taskCompleted}/#{taskCount}] [#{done}/#{max}]" +
                     "\tReceived #{messageReceived} messages (all #{messageCount} in database)"
 
         broadcast.on 'taskcreated', (preparedLength, allLength) ->
+            taskCount = allLength
             logger.info "[Broadcasts] Created #{preparedLength} tasks (all #{allLength} tasks)."
+
+        broadcast.on 'taskcompleted', ->
+            taskCompleted++
 
         broadcast.on 'beforestart', ->
             logger.info "[Broadcasts] Begin requesting..."

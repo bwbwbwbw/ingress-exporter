@@ -24,6 +24,7 @@ class BroadcastTasker
             response (done, max)
             createtask
             taskcreated (preparedLength, allLength)
+            taskcompleted (taskid)
             updatequeue
             queueupdated
             beforestart
@@ -212,6 +213,8 @@ class BroadcastTasker
             # no more messages: remove task
             delete @tasks[taskId]
             @length--
+
+            @emitter.emit 'taskcompleted', taskId
 
             Database.db.collection('chat_queue').remove
                 _id: new ObjectID(taskId)
