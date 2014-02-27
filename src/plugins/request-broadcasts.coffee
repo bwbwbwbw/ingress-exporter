@@ -66,7 +66,7 @@ bootstrap = (callback) ->
             logger.info "[Broadcasts] " +
                     Math.round(taskCompleted / taskCount * 100) + 
                     "% [#{taskCompleted}/#{taskCount}] [#{done}/#{max}]" +
-                    "\tReceived #{messageReceived} messages (all #{messageCount} in database)"
+                    "\tReceived #{messageReceived} (all #{messageCount})"
 
         broadcast.on 'taskcreated', (preparedLength, allLength) ->
             taskCount = allLength
