@@ -31,8 +31,8 @@ bootstrap = (callback) ->
 
     indexes = [
         {time: -1}
-        {'markup.player1.guid': 1}
-        {'markup.portal1.guid': 1}
+        {'markup.PLAYER1.plain': 1}
+        {'markup.PORTAL1.guid': 1}
     ]
 
     # ensure indexes
