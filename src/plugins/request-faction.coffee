@@ -30,6 +30,7 @@ dbQueue = async.queue (task, callback) ->
 bootstrap = (callback) ->
 
     indexes = [
+        {time: 1}
         {time: -1}
         {'markup.SENDER1.plain': 1}
         {'markup.PLAYER1.plain': 1}
