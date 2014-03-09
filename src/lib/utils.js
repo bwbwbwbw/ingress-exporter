@@ -1,5 +1,46 @@
 var Utils = GLOBAL.Utils = {
 
+    getCount: function(a) {
+        var b = 0;
+        for(var c in a) {
+            b++;
+        }
+        return b;
+    },
+
+    getBoundsParamsForWorld: function() {
+
+        return {
+            bounds: {
+                sw: {
+                    lat: function() {return -90;},
+                    lng: function() {return -180;}
+                },
+                ne: {
+                    lat: function() {return 90;},
+                    lng: function() {return 180;}
+                }
+            }
+        }
+
+    },
+
+    extractNormalizeFunction: function(nemesis) {
+
+        var funcOriginal = nemesis.dashboard.requests.normalizeParamCount.toString();
+        funcOriginal = funcOriginal.replace(/goog\.now/g, 'Date.now');
+        funcOriginal = funcOriginal.replace(/goog\.object\.getCount/g, 'Utils.getCount');
+        funcOriginal = funcOriginal.replace(/nemesis\.dashboard\.BoundsParams\.getBoundsParamsForWorld/g, 'Utils.getBoundsParamsForWorld');
+
+        return funcOriginal;
+
+    },
+
+    createNormalizeFunction: function(str) {
+
+        return new Function('obj', 'return (' + str + ')(obj)');
+    },
+
     extractMungeFromStock: function(nemesis) {
 
         var foundMunges = {};
@@ -141,7 +182,7 @@ var Utils = GLOBAL.Utils = {
         return new L.LatLngBounds ( Utils.clampLatLng(bounds.getSouthWest()), Utils.clampLatLng(bounds.getNorthEast()) );
     },
 
-    requestDataMunge: function(data, activeMunge) {
+    requestDataMunge: function(data, activeMunge, normalizeFunc) {
 
         function munge(obj) {
 
@@ -174,6 +215,11 @@ var Utils = GLOBAL.Utils = {
         };
 
         var newdata = munge(data);
+        
+        try {
+            newdata = normalizeFunc(newdata);
+        } catch(err) {}
+        
         return newdata;
     },
 

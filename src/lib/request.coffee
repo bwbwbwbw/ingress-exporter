@@ -71,10 +71,8 @@ class RequestFactory
 
     generate: (options) =>
 
-        if @munge is null
-            activeMunge = Munges.Data[Munges.ActiveSet]
-        else
-            activeMunge = @munge
+        activeMunge = Munges.Data[Munges.ActiveSet]
+        normalizeFunc = Munges.NormalizeParamCount.func
 
         methodName = 'dashboard.' + options.action
         versionStr = 'version_parameter'
@@ -82,7 +80,7 @@ class RequestFactory
         methodName = activeMunge[methodName]
         versionStr = activeMunge[versionStr]
 
-        post_data = Utils.requestDataMunge Utils.extend({method: methodName, version: versionStr}, options.data), activeMunge
+        post_data = Utils.requestDataMunge Utils.extend({method: methodName, version: versionStr}, options.data), activeMunge, normalizeFunc
 
         # return:
         return {

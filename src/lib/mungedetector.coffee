@@ -7,6 +7,9 @@ NemesisMethodName = null
 Munges = GLOBAL.Munges =
     Data:      null
     ActiveSet: 0
+    NormalizeParamCount:
+        func: (a) -> a
+        body: 'function(a){return a;}'
 
 MungeDetector = GLOBAL.MungeDetector = 
     
@@ -27,6 +30,8 @@ MungeDetector = GLOBAL.MungeDetector =
                     if record?
                         Munges.Data = record.data
                         Munges.ActiveSet = record.index
+                        Munges.NormalizeParamCount.body = record.func
+                        Munges.NormalizeParamCount.func = Utils.createNormalizeFunction(record.func)
 
                     callback()
 
@@ -41,7 +46,7 @@ MungeDetector = GLOBAL.MungeDetector =
 
                 logger.info '[MungeDetector] Trying to use internal munge data.'
 
-                tryMungeSet Munges.Data[Munges.ActiveSet], (err) ->
+                tryMungeSet (err) ->
 
                     if not err?
                         callback 'done'
@@ -83,6 +88,7 @@ MungeDetector = GLOBAL.MungeDetector =
                         $set:
                             data:  Munges.Data
                             index: Munges.ActiveSet
+                            func:  Munges.NormalizeParamCount.body
                     , {upsert: true}
                     , (err) ->
                         
@@ -106,9 +112,7 @@ MungeDetector = GLOBAL.MungeDetector =
                 logger.error '[MungeDetector] Could not detect munge data. Tasks are terminated.'
                 callback new Error('Munge detection failed')
 
-tryMungeSet = (munge, tryCallback) ->
-
-    request.munge = munge
+tryMungeSet = (tryCallback) ->
 
     request.push
         action: 'getGameScore'
@@ -156,9 +160,11 @@ extractMunge = (callback) ->
 
         Munges.Data      = [result]
         Munges.ActiveSet = 0
+        Munges.NormalizeParamCount.body = Utils.extractNormalizeFunction export_obj.nemesis
+        Munges.NormalizeParamCount.func = Utils.createNormalizeFunction Munges.NormalizeParamCount.body
 
         # test it
-        tryMungeSet Munges.Data[Munges.ActiveSet], (err) ->
+        tryMungeSet (err) ->
 
             if not err?
                 callback()
