@@ -48,7 +48,7 @@ bootstrap = ->
             if argv.mungedetect isnt 'false'
                 MungeDetector.detect callback
             else
-                callback()
+                MungeDetector.initFromDatabase callback
 
         , (callback) ->
 

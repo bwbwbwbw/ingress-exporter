@@ -11,6 +11,23 @@ Munges = GLOBAL.Munges =
 
 MungeDetector = GLOBAL.MungeDetector = 
     
+    initFromDatabase: (callback) ->
+
+        Database.db.collection('MungeData').findOne {_id: 'munge'}, (err, record) ->
+
+            if err
+                logger.error '[MungeDetector] Failed to read mungedata from database: %s', err.message
+                return callback err
+
+            if record?
+                Munges.Data = record.data
+                Munges.ActiveSet = record.index
+                Munges.NormalizeParamCount.body = record.func
+                Munges.NormalizeParamCount.func = Utils.createNormalizeFunction(record.func)
+                return callback()
+            
+            callback new Error 'No munge data in database'
+
     detect: (callback) ->
 
         async.series [
@@ -18,19 +35,9 @@ MungeDetector = GLOBAL.MungeDetector =
             (callback) ->
 
                 # 0. retrive munge data from database
-
-                Database.db.collection('MungeData').findOne {_id: 'munge'}, (err, record) ->
-
-                    if err
-                        logger.error '[MungeDetector] Failed to read mungedata from database: %s', err.message
-                        return callback err
-
-                    if record?
-                        Munges.Data = record.data
-                        Munges.ActiveSet = record.index
-                        Munges.NormalizeParamCount.body = record.func
-                        Munges.NormalizeParamCount.func = Utils.createNormalizeFunction(record.func)
-
+                
+                # ignore errors
+                MungeDetector.initFromDatabase (err) ->
                     callback()
 
             , (callback) ->
