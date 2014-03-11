@@ -1,7 +1,53 @@
-http = require 'http'
-request = require 'request'
 zlib = require 'zlib'
 async = require 'async'
+request = require 'request'
+
+class delayedQueue
+
+    constructor: (worker, delay) ->
+
+        @lastTS = null
+        @worker = worker
+        @delay = delay
+        @queue = async.queue @_work, 1
+
+    push: (task) =>
+
+        @queue.push task
+
+    _work: (task, callback) =>
+
+        main = =>
+            @worker task
+            @lastTS = Date.now()
+            callback()
+
+        if @lastTS is null
+            main()
+        else
+            TSnow = Date.now()
+            if TSnow - @lastTS < @delay
+                setTimeout main, @delay - (TSnow - @lastTS)
+            else
+                main()
+
+delayedRequestQueue = new delayedQueue (task) ->
+
+    task()
+
+, Config.Request.MinIntervalMS
+
+delayedRequest =
+    
+    post: (options, callback) ->
+
+        delayedRequestQueue.push ->
+            request.post options, callback
+
+    get: (options, callback) ->
+
+        delayedRequestQueue.push ->
+            request.get options, callback
 
 class RequestFactory
 
@@ -106,7 +152,7 @@ class RequestFactory
 
     post: (url, data, callback) =>
 
-        request.post
+        delayedRequest.post
 
             url:        'http://www.ingress.com' + url
             body:       JSON.stringify data
@@ -127,7 +173,7 @@ class RequestFactory
 
     get: (url, callback) =>
 
-        request.get
+        delayedRequest.get
 
             url:        'http://www.ingress.com' + url
             jar:        @cookieJar
