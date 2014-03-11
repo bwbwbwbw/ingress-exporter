@@ -2,8 +2,6 @@ async = require 'async'
 requestFactory = require './requestfactory.js'
 request = requestFactory()
 
-NemesisMethodName = null
-
 Munges = GLOBAL.Munges =
     Data:      null
     ActiveSet: 0
