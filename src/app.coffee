@@ -45,11 +45,14 @@ bootstrap = ->
 
         (callback) ->
 
-            MungeDetector.detect callback
+            if argv.mungedetect isnt 'false'
+                MungeDetector.detect callback
+            else
+                callback()
 
         , (callback) ->
 
-            if not argv.noplayerinfo
+            if argv.playerdetect isnt 'false'
                 AccountInfo.fetch callback
             else
                 callback()
