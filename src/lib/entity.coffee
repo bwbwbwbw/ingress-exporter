@@ -1,5 +1,5 @@
 async = require 'async'
-requestFactory = require './request.js'
+requestFactory = require './requestfactory.js'
 request = requestFactory()
 
 requested_guid = {}

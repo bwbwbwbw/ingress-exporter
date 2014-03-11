@@ -1,6 +1,6 @@
 async = require 'async'
 events = require 'events'
-requestFactory = require './request.js'
+requestFactory = require './requestfactory.js'
 
 ObjectID = Database.db.bson_serializer.ObjectID
 
