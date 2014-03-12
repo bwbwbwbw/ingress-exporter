@@ -63,6 +63,11 @@ bootstrap = ->
 
     ], (err) ->
 
+        if err
+
+            Database.db.close()
+            return
+
         if not err
 
             async.eachSeries pluginList, (plugin, callback) ->
