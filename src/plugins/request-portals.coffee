@@ -1,5 +1,5 @@
 async = require 'async'
-requestFactory = require '../lib/request.js'
+requestFactory = require '../lib/requestfactory.js'
 request = requestFactory()
 
 timeoutTiles = []

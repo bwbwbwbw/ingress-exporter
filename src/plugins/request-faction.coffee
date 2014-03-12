@@ -1,7 +1,5 @@
 async = require 'async'
-requestFactory = require '../lib/request.js'
 broadcastTasker = require '../lib/broadcast.js'
-request = requestFactory()
 
 messageCount    = 0
 messageReceived = 0
