@@ -155,9 +155,8 @@ extractMunge = (callback) ->
             maps:
                 OverlayView: ->
                     null
-        eval body + ';export_obj.nemesis = nemesis;'
-
         try
+            eval body + ';export_obj.nemesis = nemesis;'
             result = Utils.extractMungeFromStock export_obj.nemesis
         catch err
             callback 'fail'
