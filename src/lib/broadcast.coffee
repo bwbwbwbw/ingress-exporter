@@ -2,7 +2,7 @@ async = require 'async'
 events = require 'events'
 requestFactory = require './requestfactory.js'
 
-ObjectID = Database.db.bson_serializer.ObjectID
+ObjectID = require('mongoskin').ObjectID
 
 STATUS_PENDING     = 0
 STATUS_ERROR       = 1

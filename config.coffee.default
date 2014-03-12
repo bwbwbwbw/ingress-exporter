@@ -36,17 +36,15 @@ Config = GLOBAL.Config =
 
         SplitTimespanMS:        3*60*60*1000   # split tasks by 3hrs
         TraceTimespanMS:    10*24*60*60*1000   # new task: trace 10 days
-        MaxTraceTimespanMS: 30*24*60*60*1000   # continue task: max trace 30 days
         FetchItemCount:     300
 
     PlayerLookup:
 
         Max: 15
-        Min: 10
     
     Database:
 
-        ConnectString: 'localhost:27017/ingress?auto_reconnect'
+        ConnectString: 'mongodb://localhost:27017/ingress'
 
         MaxParallel:    10
         
