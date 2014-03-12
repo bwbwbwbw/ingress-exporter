@@ -204,7 +204,10 @@ class RequestFactory
                 process.exit 0
                 return false
 
-            return new Error 'Unknown server response'
+            if body.indexOf('but your computer or network may be sending automated queries') > -1
+                return new Error 'request rejected'
+
+            return new Error 'unknown server response'
 
         return null
 
