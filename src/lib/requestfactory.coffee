@@ -31,7 +31,12 @@ class RequestFactory
         @cookies    = {}
         @cookieJar  = null
 
-        for cookie in Config.Auth.CookieRaw.split(';')
+        if argv.cookie?
+            cookieRaw = argv.cookie
+        else
+            cookieRaw = Config.Auth.CookieRaw
+
+        for cookie in cookieRaw.split(';')
             
             cookie = cookie.trim()
             continue if cookie.length is 0
@@ -82,7 +87,12 @@ class RequestFactory
 
         @cookieJar = request.jar()
 
-        for cookie in Config.Auth.CookieRaw.split(';')
+        if argv.cookie?
+            cookieRaw = argv.cookie
+        else
+            cookieRaw = Config.Auth.CookieRaw
+
+        for cookie in cookieRaw.split(';')
             cookie = cookie.trim()
             if cookie.length isnt 0
                 @cookieJar.setCookie request.cookie(cookie), 'http://www.ingress.com'

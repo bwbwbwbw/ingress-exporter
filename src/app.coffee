@@ -16,6 +16,9 @@ noop = GLOBAL.noop = ->
 
 #######################
 
+GLOBAL.argv = require('optimist').argv
+async = require('async')
+
 require './config.js'
 
 require './lib/leaflet.js'
@@ -27,9 +30,6 @@ require './lib/mungedetector.js'
 require './lib/accountinfo.js'
 
 require 'color'
-
-GLOBAL.argv = require('optimist').argv
-async = require('async')
 
 plugins = require('require-all')(
     dirname: __dirname + '/plugins'
