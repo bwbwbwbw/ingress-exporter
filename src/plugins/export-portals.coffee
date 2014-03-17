@@ -29,8 +29,8 @@ bootstrap = (callback) ->
                 line.push po.title.replace(/,/g, '-').trim() if argv.title or argv.t
                 line.push po.latE6 / 1e6 if argv.latlng or argv.l
                 line.push po.lngE6 / 1e6 if argv.latlng or argv.l
-                line.push po._id if argv.id or argv.i
                 line.push po.image if argv.image or argv.I
+                line.push po._id if argv.id or argv.i
 
                 fs.writeSync fd, line.join(',') + '\n'
 
