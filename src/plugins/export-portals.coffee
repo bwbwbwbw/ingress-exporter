@@ -12,29 +12,21 @@ module.exports =
 
 bootstrap = (callback) ->
 
-    fs.open './export.csv', 'w', (err, fd) ->
+    cursor = Database.db.collection('Portals').find().toArray (err, portals) ->
 
         if err
             logger.error '[Export] %s', err.message
             return callback()
 
-        count = 0
+        for po in portals
 
-        cursor = Database.db.collection('Portals').find().toArray (err, portals) ->
+            line = []
+            line.push po.title.replace(/,/g, '-').trim() if argv.title or argv.t
+            line.push po.latE6 / 1e6 if argv.latlng or argv.l
+            line.push po.lngE6 / 1e6 if argv.latlng or argv.l
+            line.push po.image if argv.image or argv.I
+            line.push po._id if argv.id or argv.i
 
-            for po in portals
+            console.log line.join(',')
 
-                count++
-                line = []
-                line.push po.title.replace(/,/g, '-').trim() if argv.title or argv.t
-                line.push po.latE6 / 1e6 if argv.latlng or argv.l
-                line.push po.lngE6 / 1e6 if argv.latlng or argv.l
-                line.push po.image if argv.image or argv.I
-                line.push po._id if argv.id or argv.i
-
-                fs.writeSync fd, line.join(',') + '\n'
-
-            fs.closeSync fd
-            
-            logger.info '[Export] Exported %d portals.', count
-            callback()
+        callback()
