@@ -56,7 +56,8 @@ tileBucket = async.cargo (tiles, callback) ->
     , (err) ->
         # onFinish
         
-        t = 0
+        t1 = 0
+        t2 = 0
 
         request.push
 
@@ -64,17 +65,19 @@ tileBucket = async.cargo (tiles, callback) ->
             data:   data
             beforeRequest: (callback) ->
 
-                t = Date.now()
+                t1 = Date.now()
                 callback()
 
             onSuccess: (response, callback) ->
 
+                t2 = Date.now()
                 processSuccessTileResponse response, tiles, callback
 
             onError: (err, callback) ->
 
                 logger.error "[Portals] #{err.message}"
 
+                t2 = Date.now()
                 processErrorTileResponse tiles, callback
 
             afterResponse: (callback) ->
@@ -83,7 +86,7 @@ tileBucket = async.cargo (tiles, callback) ->
 
                     logger.info "[Portals] " +
                         Math.round(request.done / request.max * 100).toString() +
-                        "%\t[#{request.done}/#{request.max}]\t#{Date.now() - t}ms" +
+                        "%\t[#{request.done}/#{request.max}]\t#{t2 - t1}ms" +
                         "\t#{Entity.counter.portals} portals, #{Entity.counter.links} links, #{Entity.counter.fields} fields"
 
                     callback()
