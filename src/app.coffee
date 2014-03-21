@@ -39,20 +39,24 @@ plugins = require('require-all')(
 #######################
 # bootstrap
 
+if argv.detect?
+    argv.detectmunge = argv.detect
+    argv.detectplayer = argv.detect
+
 bootstrap = ->
 
     async.series [
 
         (callback) ->
 
-            if argv.mungedetect isnt 'false'
+            if argv.detectmunge isnt 'false'
                 MungeDetector.detect callback
             else
                 MungeDetector.initFromDatabase callback
 
         , (callback) ->
 
-            if argv.playerdetect isnt 'false'
+            if argv.detectplayer isnt 'false'
                 AccountInfo.fetch callback
             else
                 callback()
