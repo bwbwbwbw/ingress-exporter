@@ -18,6 +18,10 @@ bootstrap = (callback) ->
             $gte: Date.now() - 30 * 24 * 60 * 60 * 1000
     ).sort({time: -1}).limit(500).toArray (err, logs) ->
 
+        if err
+            logger.error '[Trace] %s', err.message
+            return callback()
+
         for item in logs
             console.log '[%s]\t%s', moment(item.time).format('LLL'), item.text
 
