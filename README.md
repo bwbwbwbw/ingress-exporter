@@ -5,9 +5,7 @@ Export all portals, links, fields and system broadcasts in a specific geo-region
 
 # Requirement
 
-Node.js > 0.10
-
-MongoDB > 2.2
+Node.js, MongoDB
 
 # Install
 
@@ -19,6 +17,14 @@ grunt
 
 # Usage
 
+### Config
+
+See `config.coffee.default` for details.
+You need to copy and rename to `config.coffee` first before running.
+Remember to execute `grunt` after you modifying `config.coffee`.
+
+### Run
+
 ```
 node build/app.js
 ```
@@ -26,18 +32,24 @@ node build/app.js
 ### Basic options
 
 ```
---portals     Request portals information
---broadcasts  Request public broadcast messages
---export      Export portals to csv
+--portals            Request portals information
+--broadcasts         Request public broadcast messages
+--export             Export portals (output to stdout)
+--detect false       Don't detect munge data & player info
+                     Overwrites --detectmunge and --detectplayer
+                     (You may need this when just exporting data)
+--detectmunge false  Don't detect munge data
+--detectplayer false Don't detect player info
+--cookie COOKIE      Use the specific cookie instead of cookies in config.coffee
 ```
 
-### Request portals and broadcasts options
+### Options of requesting portals and broadcasts
 
 ```
 --new    -n   Start new requests (otherwise continue)
 ```
 
-### Export options
+### Options of exporting portals
 
 ```
 --title  -t   Include title
@@ -45,7 +57,6 @@ node build/app.js
 --id     -i   Include guid
 --image  -I   Include image URI
 ```
-
 
 # Warning
 
