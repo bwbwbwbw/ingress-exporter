@@ -124,8 +124,8 @@ var Utils = GLOBAL.Utils = {
         // these arrays/constants are based on those in the stock intel site. it's essential we keep them in sync with their code
         // (it may be worth reading the values from their code rather than using our own copies? it's a case of either
         //  breaking if they rename their variables if we do, or breaking if they change the values if we don't)
-        var ZOOM_TO_TILES_PER_EDGE = [32, 32, 32, 32, 256, 256, 256, 1024, 1024, 1536, 4096, 4096, 16384, 16384, 16384];
-        var MAX_TILES_PER_EDGE = 65536;
+        var ZOOM_TO_TILES_PER_EDGE = [32, 32, 32, 32, 256, 256, 256, 1024, 1024, 1536, 4096, 4096, 6500, 6500, 6500];
+        var MAX_TILES_PER_EDGE = 9000;
         var ZOOM_TO_LEVEL = [8, 8, 8, 8, 7, 7, 7, 6, 6, 5, 4, 4, 3, 2, 2, 1, 1];
     
         return {
