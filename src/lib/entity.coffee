@@ -140,6 +140,12 @@ Entity = GLOBAL.Entity =
                 callback()
 
 createEntity = (collection, id, timestamp, data, callback) ->
+    
+    #create proper position field
+    pos =
+      lat: data.latE6/1e6
+      lng: data.lngE6/1e6    
+    data.pos = pos
 
     data.time = timestamp
 
