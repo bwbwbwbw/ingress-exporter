@@ -2,7 +2,10 @@ Config = GLOBAL.Config =
 
     Auth:
 
-        CookieRaw: 'GOOGAPPUID=xxx; ACSID=xxx; csrftoken=xxx;'
+        # You could fill this field via copying from:
+        #     Chrome Dev Tools -> Network -> (select a non-static request entity) ->
+        #     Request Headers -> Cookie
+        CookieRaw: 'GOOGAPPUID=xxx; ACSID=xxx; csrftoken=xxx'
 
     ZoomLevel: 17
 
@@ -20,16 +23,16 @@ Config = GLOBAL.Config =
 
         UserAgent:     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.107 Safari/537.36'
         MaxParallel:   10
-        MinIntervalMS: 300
+        MinIntervalMS: 100  # Too fast requesting would get IP banned
 
     Tile:
 
-        MaxFailRetry:  3    # server response a failure
+        MaxFailRetry:  3    # server responses a failure
         MaxErrorRetry: 3    # network errors, etc
 
     TileBucket:
 
-        Max: 4  # it seems that tiles will TIMEOUT if larger then 4
+        Max: 4  # tiles may get TIMEOUT if larger than 4
         Min: 4
 
     Chat:
