@@ -26,12 +26,16 @@ module.exports =
 bootstrap = (callback) ->
 
     if argv.new or argv.n
-        Tile.prepareNew ->
-            Tile.start callback
+        async.series [
+            Tile.prepareNew
+            Tile.start
+        ], callback
     else
-        Entity.requestMissingPortals ->
-            Tile.prepareFromDatabase ->
-                Tile.start callback
+        async.series [
+            if argv.detail isnt 'false' then Entity.requestMissingPortals else (c) -> c()
+            Tile.prepareFromDatabase
+            Tile.start
+        ], callback
 
 tileBucket = async.cargo (tiles, callback) ->
 

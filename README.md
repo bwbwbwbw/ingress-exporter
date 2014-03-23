@@ -27,11 +27,7 @@ Remember to execute `grunt` after you modifying `config.coffee` or updating repo
 
 ```
 node build/app.js
-```
 
-### Basic options
-
-```
 --portals            Request portals information
 --broadcasts         Request public broadcast messages
 --export             Export portals (output to stdout)
@@ -44,25 +40,32 @@ node build/app.js
 --cookie COOKIE      Use the specific cookie instead of cookies in config.coffee
 ```
 
-### Options for requesting portals and broadcasts
+Requesting portals (`--portals`):
 
 ```
---new    -n   Start new requests (otherwise continue)
+--new    -n          Start new requests (otherwise continue)
+--detail FALSE       Don't request portals details (fast)
 ```
 
-### Options for exporting portals
+Requesting broadcasts (`--broadcasts`):
 
 ```
---title  -t   Include title
---latlng -l   Include lat & lng
---id     -i   Include guid
---image  -I   Include image URI
+--new    -n          Start new requests (otherwise continue)
 ```
 
-### Options for tracing player
+Exporting portals (`--export`):
 
 ```
---player PLAYER   The player to trace (case sensitive)
+--title  -t          Include title
+--latlng -l          Include lat & lng
+--id     -i          Include guid
+--image  -I          Include image URI
+```
+
+Tracing player (`--trace`):
+
+```
+--player PLAYER      The player to trace (case sensitive)
 ```
 
 # Warning

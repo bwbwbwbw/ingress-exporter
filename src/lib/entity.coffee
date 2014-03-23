@@ -168,7 +168,7 @@ createPortalEntity = (id, timestamp, data, callback) ->
 
     createEntity 'Portals', id, timestamp, data, ->
 
-        if data.team isnt 'NEUTRAL'
+        if data.team isnt 'NEUTRAL' and argv.detail isnt 'false'
             Entity.requestPortalDetail id, ->
                 callback && callback 'portal'
         else
