@@ -21,7 +21,7 @@ grunt
 
 See `config.coffee.default` for details.
 You need to copy and rename to `config.coffee` first before running.
-Remember to execute `grunt` after you modifying `config.coffee`.
+Remember to execute `grunt` after you modifying `config.coffee` or updating repo.
 
 ### Run
 
