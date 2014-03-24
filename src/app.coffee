@@ -1,22 +1,22 @@
+GLOBAL.argv = require('optimist').argv
+
 #######################
 # initialize logger
 logger = GLOBAL.logger = require 'winston'
 logger.exitOnError = false
 logger.remove logger.transports.Console
 logger.add logger.transports.Console,
-    colorize:   process.stdout.isTTY
-    timestamp:  true
+    colorize:   if argv.raw then false else true
+    timestamp:  if argv.raw then false else true
 logger.add logger.transports.File,
     filename:   'ingress-exporter.log'
 
 #######################
 
-noop = GLOBAL.noop = ->
-    null
+noop = GLOBAL.noop = -> null
 
 #######################
 
-GLOBAL.argv = require('optimist').argv
 async = require('async')
 
 require './config.js'
