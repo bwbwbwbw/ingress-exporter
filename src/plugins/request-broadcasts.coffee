@@ -83,7 +83,12 @@ bootstrap = (callback) ->
             logger.info "[Broadcasts] Continue: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}]"
 
         tsMax = Date.now()
-        tsMin = tsMax - Config.Chat.TraceTimespanMS
+        
+        if argv.tracedays
+            tsMin = tsMax - parseInt(argv.tracedays) * 24 * 60 * 60 * 1000
+        else
+            tsMin = tsMax - Config.Chat.TraceTimespanMS
+        
         broadcast.start tsMin, tsMax, argv.new or argv.n
 
 insertMessage = (id, timestamp, data) ->

@@ -37,7 +37,7 @@ node build/app.js
                      (You may need this when using --export or --trace)
 --detectmunge false  Don't detect munge data
 --detectplayer false Don't detect player info
---cookie COOKIE      Use the specific cookie instead of cookies in config.coffee
+--cookie COOKIE      The cookie to use (overwrite config.coffee)
 ```
 
 Requesting portals (`--portals`):
@@ -51,6 +51,7 @@ Requesting broadcasts (`--broadcasts`):
 
 ```
 --new    -n          Start new requests (otherwise continue)
+--tracedays N        Trace history of N days (overwrite config.coffee)
 ```
 
 Exporting portals (`--export`):
