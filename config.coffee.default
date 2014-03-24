@@ -5,6 +5,8 @@ Config = GLOBAL.Config =
         # You could fill this field via copying from:
         #     Chrome Dev Tools -> Network -> (select a non-static request entity) ->
         #     Request Headers -> Cookie
+        # Please fetch the cookie from non-SSL ingress/intel site.
+        # Otherwise it won't work currently.
         CookieRaw: 'GOOGAPPUID=xxx; ACSID=xxx; csrftoken=xxx'
 
     ZoomLevel: 17
