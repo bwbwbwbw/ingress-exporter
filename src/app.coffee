@@ -54,16 +54,14 @@ bootstrap = ->
             else
                 MungeDetector.initFromDatabase callback
 
-        , (callback) ->
+        (callback) ->
 
             if argv.detectplayer isnt 'false'
                 AccountInfo.fetch callback
             else
                 callback()
 
-        , (callback) ->
-
-            Agent.initFromDatabase callback
+        Agent.initFromDatabase
 
     ], (err) ->
 
