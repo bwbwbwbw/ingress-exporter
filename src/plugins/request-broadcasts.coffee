@@ -125,7 +125,7 @@ insertMessage = (id, timestamp, data) ->
             
                 Database.db.collection('Chat.Public').insert doc, callback
 
-            , (callback) ->
+            (callback) ->
 
                 # resove player names
                 if doc.markup.PLAYER1?

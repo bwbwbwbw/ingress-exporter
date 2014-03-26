@@ -85,7 +85,7 @@ class BroadcastTasker
 
                         callback()
 
-                , (callback) =>
+                (callback) =>
 
                     # get last timestamp
                     Database.db.collection('chat_meta').findOne {_id: @options.instanceId}, (err, meta) ->
@@ -95,7 +95,7 @@ class BroadcastTasker
 
                         callback()
 
-                , (callback) =>
+                (callback) =>
 
                     # create tasks
                     @createTasks tsMin, timestampMax, callback

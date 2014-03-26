@@ -42,13 +42,13 @@ Entity = GLOBAL.Entity =
                         Entity.counter.portals = count if not err
                         callback()
 
-                , (callback) ->
+                (callback) ->
 
                     Database.db.collection('Fields').count {}, (err, count) ->
                         Entity.counter.fields = count if not err
                         callback()
 
-                , (callback) ->
+                (callback) ->
                     
                     Database.db.collection('Links').count {}, (err, count) ->
                         Entity.counter.links = count if not err
