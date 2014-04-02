@@ -141,12 +141,6 @@ Entity = GLOBAL.Entity =
 
 createEntity = (collection, id, timestamp, data, callback) ->
     
-    #create proper position field
-    pos =
-      lat: data.latE6/1e6
-      lng: data.lngE6/1e6    
-    data.pos = pos
-
     data.time = timestamp
 
     Database.db.collection(collection).update
@@ -165,6 +159,10 @@ createEntity = (collection, id, timestamp, data, callback) ->
         callback()
 
 createPortalEntity = (id, timestamp, data, callback) ->
+
+    data.pos =
+        lat: data.latE6 / 1e6
+        lng: data.lngE6 / 1e6
 
     createEntity 'Portals', id, timestamp, data, ->
 
