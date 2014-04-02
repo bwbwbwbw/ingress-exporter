@@ -58,6 +58,7 @@ Requesting broadcasts (`--broadcasts`):
 Exporting portals (`--export`):
 
 ```
+--output FILE        Output to the file instead of stdout (optional)
 --title  -t          Include title
 --latlng -l          Include lat & lng
 --id     -i          Include guid
@@ -73,7 +74,7 @@ Tracing player (`--trace`):
 Finding farms (`--farm`):
 
 ```
---output FILE        Output to the file instead of stdout
+--output FILE        Output to the file instead of stdout (optional)
 --radius R           Minimum distance of portals (unit: m) (default: 500)
 --nearby N           Minimum nearby portals for a farm     (default: 5)
 --level  LEVEL       Minimum level of portals              (default: 7)

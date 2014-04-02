@@ -1,5 +1,3 @@
-fs = require 'fs'
-
 module.exports = 
 
     onBootstrap: (callback) ->
@@ -18,6 +16,8 @@ bootstrap = (callback) ->
             logger.error '[Export] %s', err.message
             return callback()
 
+        lines = []
+
         for po in portals
 
             line = []
@@ -27,6 +27,14 @@ bootstrap = (callback) ->
             line.push po.image if argv.image or argv.I
             line.push po._id if argv.id or argv.i
 
-            console.log line.join(',')
+            lines.push line.join(',')
+
+        lines = lines.join '\n'
+
+        if argv.output
+            fs = require 'fs'
+            fs.writeFileSync argv.output, lines
+        else
+            console.log lines
 
         callback()
