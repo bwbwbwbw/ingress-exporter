@@ -22,7 +22,21 @@ bootstrap = (callback) ->
             logger.error '[Trace] %s', err.message
             return callback()
 
+        lines = []
+        
         for item in logs
-            console.log '[%s]\t%s', moment(item.time).format('LLL'), item.text
+
+            line = []
+            line.push JSON.stringify item.text.toString()
+            line.push JSON.stringify moment(item.time).format('LLLL').toString()
+
+            lines.push line.join(',')
+        
+        if argv.output
+            fs = require 'fs'
+            fs.writeFileSync argv.output, lines.join('\n')
+            logger.info '[Trace] Outputed %d records', lines.length
+        else
+            console.log lines.join('\n')
 
         callback()

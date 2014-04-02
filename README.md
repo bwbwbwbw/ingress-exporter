@@ -68,6 +68,7 @@ Exporting portals (`--export`):
 Tracing player (`--trace`):
 
 ```
+--output FILE        Output to the file instead of stdout (optional)
 --player PLAYER      The player to trace (case sensitive)
 ```
 
