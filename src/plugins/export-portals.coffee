@@ -29,12 +29,11 @@ bootstrap = (callback) ->
 
             lines.push line.join(',')
 
-        lines = lines.join '\n'
-
         if argv.output
             fs = require 'fs'
-            fs.writeFileSync argv.output, lines
+            fs.writeFileSync argv.output, lines.join('\n')
+            logger.info '[Export] Exported %d portals', lines.length
         else
-            console.log lines
+            console.log lines.join('\n')
 
         callback()
