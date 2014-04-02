@@ -44,7 +44,7 @@ Requesting portals (`--portals`):
 
 ```
 --new    -n          Start new requests (otherwise continue)
---detail FALSE       Don't request portals details (fast)
+--detail false       Don't request portals details (fast)
 ```
 
 Requesting broadcasts (`--broadcasts`):
