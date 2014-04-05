@@ -189,6 +189,9 @@ class RequestFactory
             if body.indexOf('but your computer or network may be sending automated queries') > -1
                 return new Error 'request rejected'
 
+            if body.trim().length is 0
+                return new Error 'Empty server response'
+
             return new Error 'unknown server response'
 
         return null
