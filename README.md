@@ -23,6 +23,21 @@ See `config.coffee.default` for details.
 You need to copy and rename to `config.coffee` first before running.
 Remember to execute `grunt` after you modifying `config.coffee` or updating repo.
 
+How to generate polygon data via IITC drawtool:
+
+```javascript
+window.plugin.drawTools.drawnItems.eachLayer(function(layer) {
+    if (!(layer instanceof L.GeodesicPolygon)) {
+        return;
+    }
+    var latlngs = [];
+    layer.getLatLngs().forEach(function(p) {
+        latlngs.push([p.lat, p.lng]);
+    });
+    console.log(JSON.stringify(latlngs));
+});
+```
+
 ### Run
 
 ```
