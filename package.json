@@ -17,6 +17,8 @@
         "winston": "*",
         "optimist": "*",
         "require-all": "*",
-        "color": "*"
+        "color": "*",
+        "point-in-polygon": "*",
+        "ndarray": "*"
     }
 }

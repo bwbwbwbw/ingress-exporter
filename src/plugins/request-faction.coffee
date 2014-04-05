@@ -1,4 +1,5 @@
 async = require 'async'
+scutil = require '../lib/scutil.js'
 broadcastTasker = require '../lib/broadcast.js'
 
 messageCount    = 0
@@ -44,11 +45,13 @@ bootstrap = (callback) ->
         dbQueue.drain = ->
             callback() if noMoreMessages
 
+        region = scutil.getLatLngRegion Config.Region
+
         broadcast = broadcastTasker
             instanceId:         'req-broadcast-faction'
             type:               'faction'
             splitTimespanMS:    Config.Chat.SplitTimespanMS
-            region:             Config.Region
+            region:             region
 
         broadcast.on 'error', (err) ->
             logger.error "[Faction] #{err.message}"
@@ -77,11 +80,6 @@ bootstrap = (callback) ->
 
         broadcast.on 'beforestart', ->
             logger.info "[Faction] Begin requesting..."
-
-        if argv.new or argv.n
-            logger.info "[Faction] New: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}]"
-        else
-            logger.info "[Faction] Continue: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}]"
 
         tsMax = Date.now()
         tsMin = tsMax - Config.Chat.TraceTimespanMS

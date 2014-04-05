@@ -1,4 +1,5 @@
 async = require 'async'
+scutil = require '../lib/scutil.js'
 requestFactory = require '../lib/requestfactory.js'
 request = requestFactory()
 
@@ -107,31 +108,25 @@ Tile =
     # calculate region tiles
     calculateTileKeys: ->
 
-        bounds = Utils.clampLatLngBounds new L.LatLngBounds(
-            new L.LatLng(Config.Region.SouthWest.Lat, Config.Region.SouthWest.Lng),
-            new L.LatLng(Config.Region.NorthEast.Lat, Config.Region.NorthEast.Lng)
-        )
-
         tileParams = Utils.getMapZoomTileParameters Config.ZoomLevel
 
-        x1 = Utils.lngToTile bounds.getWest(), tileParams
-        x2 = Utils.lngToTile bounds.getEast(), tileParams
-        y1 = Utils.latToTile bounds.getNorth(), tileParams
-        y2 = Utils.latToTile bounds.getSouth(), tileParams
+        polygon = []
+        for latlng in Config.Region
+            polygon.push [
+                Utils.latToTile(Utils.clampLat(latlng[0]), tileParams)
+                Utils.lngToTile(Utils.clampLng(latlng[1]), tileParams)
+            ]
 
+        tiles = scutil.discretize polygon
         ret = []
 
-        for y in [y1 .. y2]
-            for x in [x1 .. x2]
+        for tile in tiles
+            tileId = Utils.pointToTileId tileParams, tile.y, tile.x
+            ret.push tileId
 
-                tileId = Utils.pointToTileId tileParams, x, y
-                ret.push tileId
-
-        return ret
+        ret
 
     prepareFromDatabase: (callback) ->
-
-        logger.info "[Portals] Preparing from database: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Utils.getMapZoomTileParameters(Config.ZoomLevel).level}"
 
         # get all tiles
         tiles = Tile.calculateTileKeys()
@@ -159,8 +154,6 @@ Tile =
 
     prepareNew: (callback) ->
 
-        logger.info "[Portals] Preparing new: [#{Config.Region.SouthWest.Lat},#{Config.Region.SouthWest.Lng}]-[#{Config.Region.NorthEast.Lat},#{Config.Region.NorthEast.Lng}], MinPortalLevel=#{Utils.getMapZoomTileParameters(Config.ZoomLevel).level}"
-        
         tiles = Tile.calculateTileKeys()
         Tile.list.push id for id in tiles
 
