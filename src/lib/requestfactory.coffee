@@ -27,25 +27,7 @@ class RequestFactory
 
         @max        = 0
         @done       = 0
-        @munge      = null
-        @cookies    = {}
-        @cookieJar  = null
-
-        if argv.cookie?
-            cookieRaw = argv.cookie
-        else
-            cookieRaw = Config.Auth.CookieRaw
-
-        for cookie in cookieRaw.split(';')
-            
-            cookie = cookie.trim()
-            continue if cookie.length is 0
-
-            pair = cookie.split '='
-            @cookies[pair[0]] = unescape pair[1]
-
-        @resetCookies()
-
+        
         @queue = async.queue (task, callback) =>
 
             task.before =>
@@ -83,20 +65,6 @@ class RequestFactory
 
         , Config.Request.MaxParallel
 
-    resetCookies: =>
-
-        @cookieJar = request.jar()
-
-        if argv.cookie?
-            cookieRaw = argv.cookie
-        else
-            cookieRaw = Config.Auth.CookieRaw
-
-        for cookie in cookieRaw.split(';')
-            cookie = cookie.trim()
-            if cookie.length isnt 0
-                @cookieJar.setCookie request.cookie(cookie), 'http://www.ingress.com'
-
     generate: (options) =>
 
         activeMunge = Munges.Data[Munges.ActiveSet]
@@ -132,13 +100,15 @@ class RequestFactory
         task = @generate options
         @queue.unshift task
 
-    post: (url, data, callback) =>
+    post: (url, data, callback, session) =>
+
+        session = entry.sessions[Math.floor(Math.random() * entry.sessions.length)] if not session?
 
         delayedRequest.post
 
             url:        'http://www.ingress.com' + url
             body:       JSON.stringify data
-            jar:        @cookieJar
+            jar:        session.jar
             maxSockets: 50
             encoding:   null
             timeout:    20000
@@ -149,16 +119,18 @@ class RequestFactory
                 'Origin': 'http://www.ingress.com'
                 'Referer': 'http://www.ingress.com/intel'
                 'User-Agent': Config.Request.UserAgent
-                'X-CSRFToken': @cookies.csrftoken
+                'X-CSRFToken': session.cookies.csrftoken
 
         , @_gzipDecode @_jsonDecode callback
 
-    get: (url, callback) =>
+    get: (url, callback, session) =>
+
+        session = entry.sessions[Math.floor(Math.random() * entry.sessions.length)] if not session?
 
         delayedRequest.get
 
             url:        'http://www.ingress.com' + url
-            jar:        @cookieJar
+            jar:        session.jar
             maxSockets: 50
             encoding:   null
             timeout:    20000
@@ -245,6 +217,39 @@ class RequestFactory
 
             callback error, response, body
 
-module.exports = ->
+
+entry = ->
 
     return new RequestFactory()
+
+entry.sessions = []
+
+if argv.cookie?
+    cookieRaw = argv.cookie
+else
+    cookieRaw = Config.Auth.CookieRaw
+
+# turn into an array
+cookieRaw = [cookieRaw] if typeof cookieRaw is 'string'
+
+for cookies, index in cookieRaw
+
+    map = {}
+    jar = request.jar()
+
+    for cookie in cookies.split(';')
+        
+        cookie = cookie.trim()
+        continue if cookie.length is 0
+
+        jar.setCookie request.cookie(cookie), 'http://www.ingress.com' if cookie.length isnt 0
+
+        pair = cookie.split '='
+        map[pair[0]] = unescape pair[1]
+
+    entry.sessions.push
+        index:   index
+        cookies: map
+        jar:     jar
+
+module.exports = entry

@@ -4,42 +4,54 @@ request = requestFactory()
 
 AccountInfo = GLOBAL.AccountInfo = 
     
+    getAccount: (session, callback) ->
+
+        request.get '/intel', (error, response, body) ->
+
+            return callback error if error
+                
+            body = body.toString()
+
+            MAGIC_1 = 'var PLAYER = '
+            MAGIC_2 = ';'
+
+            p1 = body.indexOf MAGIC_1
+            p2 = body.indexOf MAGIC_2, p1 + MAGIC_1.length
+
+            return callback new Error('Failed to fetch information. (#' + session.index + ')') if p1 is -1 or p2 is -1
+
+            try
+                player = JSON.parse body.substring(p1 + MAGIC_1.length, p2)
+            catch e
+                return callback new Error('Failed to parse player information. (#' + session.index + ')')
+
+            callback null, player
+
+        , session
+
     fetch: (callback) ->
 
         logger.info '[AccountInfo] Fetching current account information...'
 
-        ((callback) ->
+        accounts = []
 
-            request.get '/intel', (error, response, body) ->
+        async.each requestFactory.sessions, (session, callback) ->
 
-                if error
-                    return callback error
+            AccountInfo.getAccount session, (err, player) ->
 
-                body = body.toString()
+                if err
+                    callback err
+                else
+                    accounts.push player
+                    callback()
 
-                MAGIC_1 = 'var PLAYER = '
-                MAGIC_2 = ';'
-
-                p1 = body.indexOf MAGIC_1
-                p2 = body.indexOf MAGIC_2, p1 + MAGIC_1.length
-
-                if p1 is -1 or p2 is -1
-                    return callback new Error('Failed to fetch information.')
-
-                try
-                    player = JSON.parse body.substring(p1 + MAGIC_1.length, p2)
-                catch e
-                    return callback new Error('Failed to parse player information.')
-
-                callback null, player
-
-        ) (err, player) ->
+        , (err) ->
 
             if err
                 logger.error '[AccountInfo] %s', err.message
                 return callback err
 
-            logger.info '[AccountInfo] %s (%s)', player.nickname, player.team
+            logger.info '[AccountInfo] %s (%s)', player.nickname, player.team for player in accounts
             logger.warn '[AccountInfo] %s', 'Please immediately press Ctrl+C if you are using an incorrect account.'.yellow.inverse
 
             callback()
