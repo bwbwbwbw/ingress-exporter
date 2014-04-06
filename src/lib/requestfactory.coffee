@@ -21,6 +21,37 @@ delayedRequest =
         delayedRequestQueue.push ->
             request.get options, callback
 
+entry = -> new RequestFactory()
+entry.sessions = []
+
+if argv.cookie?
+    cookieRaw = argv.cookie
+else
+    cookieRaw = Config.Auth.CookieRaw
+
+# turn into an array
+cookieRaw = [cookieRaw] if typeof cookieRaw is 'string'
+
+for cookies, index in cookieRaw
+
+    map = {}
+    jar = request.jar()
+
+    for cookie in cookies.split(';')
+        
+        cookie = cookie.trim()
+        continue if cookie.length is 0
+
+        jar.setCookie request.cookie(cookie), 'http://www.ingress.com' if cookie.length isnt 0
+
+        pair = cookie.split '='
+        map[pair[0]] = unescape pair[1]
+
+    entry.sessions.push
+        index:   index
+        cookies: map
+        jar:     jar
+
 class RequestFactory
 
     constructor: ->
@@ -218,38 +249,5 @@ class RequestFactory
             callback error, response, body
 
 
-entry = ->
-
-    return new RequestFactory()
-
-entry.sessions = []
-
-if argv.cookie?
-    cookieRaw = argv.cookie
-else
-    cookieRaw = Config.Auth.CookieRaw
-
-# turn into an array
-cookieRaw = [cookieRaw] if typeof cookieRaw is 'string'
-
-for cookies, index in cookieRaw
-
-    map = {}
-    jar = request.jar()
-
-    for cookie in cookies.split(';')
-        
-        cookie = cookie.trim()
-        continue if cookie.length is 0
-
-        jar.setCookie request.cookie(cookie), 'http://www.ingress.com' if cookie.length isnt 0
-
-        pair = cookie.split '='
-        map[pair[0]] = unescape pair[1]
-
-    entry.sessions.push
-        index:   index
-        cookies: map
-        jar:     jar
 
 module.exports = entry
