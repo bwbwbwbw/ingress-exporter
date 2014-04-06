@@ -82,7 +82,12 @@ bootstrap = (callback) ->
             logger.info "[Faction] Begin requesting..."
 
         tsMax = Date.now()
-        tsMin = tsMax - Config.Chat.TraceTimespanMS
+
+        if argv.tracedays
+            tsMin = tsMax - parseInt(argv.tracedays) * 24 * 60 * 60 * 1000
+        else
+            tsMin = tsMax - Config.Chat.TraceTimespanMS
+        
         broadcast.start tsMin, tsMax, argv.new or argv.n
 
 insertMessage = (id, timestamp, data) ->
