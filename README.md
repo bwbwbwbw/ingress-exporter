@@ -38,13 +38,58 @@ window.plugin.drawTools.drawnItems.eachLayer(function(layer) {
 });
 ```
 
-### Run
+### Example
+
+#### Request all portals and details (resonators, mods, owner, ...)
+
+```
+node build/app.js --portals --new
+```
+
+#### Request all portals without details
+
+```
+node build/app.js --portals --detail false --new
+```
+
+#### Request public messages
+
+```
+node build/app.js --broadcasts
+```
+
+#### Request faction messages
+
+```
+node build/app.js --faction
+```
+
+#### Export all portals to csv file with title and image
+
+```
+node build/app.js --export -tI --output output.csv --detect false
+```
+
+### Trace a player's activities based on database and output to csv file
+
+```
+node build/app.js --trace --player Vivian --detect false
+```
+
+#### Search farms based on database and output to json file
+
+```
+node build/app.js --farm --output farm.json
+```
+
+### Options
 
 ```
 node build/app.js
 
 --portals            Request portals information
 --broadcasts         Request public broadcast messages
+--faction            Request faction messages
 --export             Export portals (output to stdout)
 --trace              Trace a player's destroy/deploy/link history (experimental)
 --farm               Find farms (experimental)
@@ -63,7 +108,7 @@ Requesting portals (`--portals`):
 --detail false       Don't request portals details (faster, optional)
 ```
 
-Requesting broadcasts (`--broadcasts`):
+Requesting public/faction (`--broadcasts` or `--faction`):
 
 ```
 --new    -n          Start new requests (otherwise continue, optional)
