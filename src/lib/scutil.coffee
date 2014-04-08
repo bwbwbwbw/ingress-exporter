@@ -192,14 +192,14 @@ scutil =
 
     getLatLngRegion: (points) ->
 
-        box = scutil.getBoundary()
+        box = scutil.getBoundary(points)
 
-            NorthEast:
-                Lat: box.x_max
-                Lng: box.y_max
-            SouthWest:
-                Lat: box.x_min
-                Lng: box.y_min
+        NorthEast:
+            Lat: box.x_max
+            Lng: box.y_max
+        SouthWest:
+            Lat: box.x_min
+            Lng: box.y_min
 
     discretize: (points) ->
 
