@@ -70,7 +70,7 @@ node build/app.js --faction
 node build/app.js --export -tI --output output.csv --detect false
 ```
 
-### Trace a player's activities based on database and output to csv file
+#### Trace a player's activities based on database and output to csv file
 
 ```
 node build/app.js --trace --player Vivian --detect false
