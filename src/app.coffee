@@ -19,7 +19,7 @@ noop = GLOBAL.noop = -> null
 
 async = require('async')
 
-require './config.js'
+Config = GLOBAL.Config = require './config.json'
 
 require './lib/leaflet.js'
 require './lib/utils.js'

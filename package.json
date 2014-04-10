@@ -10,6 +10,7 @@
         "grunt-contrib-coffee": "*",
         "grunt-contrib-watch": "*",
         "grunt-contrib-copy": "*",
+        "grunt-cson": "*",
         "request": "*",
         "async": "*",
         "mongoskin": "*",

@@ -30,18 +30,26 @@ module.exports = function (grunt)
                          src: ['**/*.coffee'],
                          dest: 'build/',
                          ext: '.js'
-                    }, {
-                         src: 'config.coffee',
-                         dest: 'build/config.js'
                     }]
                }
+          },
+
+          cson: {
+
+               project: {
+                    files: [{
+                         src: 'config.cson',
+                         dest: 'build/config.json'
+                    }]
+               }
+
           },
 
           watch: {
 
                project: {
-                    files: ['src/**/*', 'config.coffee'],
-                    tasks: ['copy', 'coffee']
+                    files: ['src/**/*', 'config.cson'],
+                    tasks: ['copy', 'coffee', 'cson']
                }
 
           }
@@ -51,8 +59,9 @@ module.exports = function (grunt)
      grunt.loadNpmTasks('grunt-contrib-copy');
      grunt.loadNpmTasks('grunt-contrib-coffee');
      grunt.loadNpmTasks('grunt-contrib-watch');
+     grunt.loadNpmTasks('grunt-cson');
 
-     grunt.registerTask('default', ['copy', 'coffee']);
-     grunt.registerTask('debug', ['copy', 'coffee', 'watch']);
+     grunt.registerTask('default', ['copy', 'coffee', 'cson']);
+     grunt.registerTask('debug', ['copy', 'coffee', 'cson', 'watch']);
 
 };
