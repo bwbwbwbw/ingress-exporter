@@ -43,6 +43,19 @@ var Utils = GLOBAL.Utils = {
 
     extractMungeFromStock: function(nemesis) {
 
+        var munges = Utils.extractMungeFromStockIITC(nemesis);
+        var new_munges = {};
+
+        for (var key in munges) {
+            new_munges[key.replace(/\./g, '_')] = munges[key];
+        }
+
+        return new_munges;
+
+    },
+
+    extractMungeFromStockIITC: function(nemesis) {
+
         var foundMunges = {};
 
         // these are easy - directly available in variables

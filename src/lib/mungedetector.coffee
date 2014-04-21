@@ -84,21 +84,23 @@ MungeDetector = GLOBAL.MungeDetector =
         ], (err) ->
 
             if err is 'done' or err is 'new'
-                
+
                 logger.info '[MungeDetector] Detect successfully.'
 
                 if err is 'new'
 
-                    Database.db.collection('MungeData').update {_id: 'munge'},
+                    Database.db.collection('MungeData').update
+                        _id: 'munge'
+                    ,
                         $set:
                             data:  Munges.Data
                             index: Munges.ActiveSet
                             func:  Munges.NormalizeParamCount.body
-                    , {upsert: true}
+                    ,
+                        upsert: true
                     , (err) ->
                         
                         # ignore error
-
                         if err
                             logger.error '[MungeDetector] Failed to save mungedata: %s', err.message
                         else
