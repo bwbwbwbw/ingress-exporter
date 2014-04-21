@@ -99,6 +99,7 @@ node build/app.js
 --detectmunge false  Don't detect munge data (optional)
 --detectplayer false Don't detect player info (optional)
 --cookie COOKIE      The cookie to use (overwrite config.coffee, optional)
+--proxy PROXY_URL    HTTP proxy URL (for example, http://127.0.0.1, optional)
 ```
 
 Requesting portals (`--portals`):

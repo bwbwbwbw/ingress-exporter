@@ -140,6 +140,7 @@ class RequestFactory
             url:        'http://www.ingress.com' + url
             body:       JSON.stringify data
             jar:        session.jar
+            proxy:      null || argv.proxy
             maxSockets: 50
             encoding:   null
             timeout:    20000
@@ -162,6 +163,7 @@ class RequestFactory
 
             url:        'http://www.ingress.com' + url
             jar:        session.jar
+            proxy:      null || argv.proxy
             maxSockets: 50
             encoding:   null
             timeout:    20000
