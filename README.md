@@ -19,9 +19,9 @@ grunt
 
 ### Config
 
-See `config.coffee.default` for details.
-You need to copy and rename to `config.coffee` first before running.
-Remember to execute `grunt` after you modifying `config.coffee` or updating repo.
+See `config.cson.default` for details.
+You need to copy and rename to `config.cson` first before running.
+Remember to execute `grunt` after you modifying `config.cson` or updating repo.
 
 How to generate polygon data via IITC drawtool:
 
@@ -98,7 +98,7 @@ node build/app.js
                      (You may need this when using --export, --trace or --farm)
 --detectmunge false  Don't detect munge data (optional)
 --detectplayer false Don't detect player info (optional)
---cookie COOKIE      The cookie to use (overwrite config.coffee, optional)
+--cookie COOKIE      The cookie to use (overwrite config.cson, optional)
 --proxy PROXY_URL    HTTP proxy URL (for example, http://127.0.0.1, optional)
 ```
 
@@ -113,7 +113,7 @@ Requesting public/faction (`--broadcasts` or `--faction`):
 
 ```
 --new    -n          Start new requests (otherwise continue, optional)
---tracedays N        Trace history of N days (overwrite config.coffee, optional)
+--tracedays N        Trace history of N days (overwrite config.cson, optional)
 ```
 
 Exporting portals (`--export`):
