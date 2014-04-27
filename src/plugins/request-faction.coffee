@@ -88,7 +88,7 @@ bootstrap = (callback) ->
         else
             tsMin = tsMax - Config.Chat.TraceTimespanMS
         
-        broadcast.start tsMin, tsMax, argv.new or argv.n
+        broadcast.start tsMin, tsMax, not (argv.new or argv.n)
 
 insertMessage = (id, timestamp, data) ->
 
