@@ -58,7 +58,6 @@ tileBucket = async.cargo (tiles, callback) ->
         ,
             $set:
                 status:  STATUS_PENDING
-                portals: 0
         ,
             upsert: true
         , callback
@@ -139,21 +138,29 @@ Tile =
 
         logger.info "[Portals] Querying #{tiles.length} tile status..."
 
-        async.eachLimit tiles, Config.Database.MaxParallel, (id, callback) ->
+        tileIdsBucket = []
+        bucketSize = 100
+        for i in [0 ... tiles.length] by bucketSize
+            tileIdsBucket.push tiles[i ... i + bucketSize]
+
+        async.eachLimit tiles, Config.Database.MaxParallel, (tileIds, callback) ->
             # find this tile in the database
-            Database.db.collection('Tiles').findOne
-                _id:    id
-                status: STATUS_COMPLETE
-            , (err, tile) ->
+            Database.db.collection('Tiles').find
+                _id:
+                    $in: tileIds
+                status:  STATUS_COMPLETE
+            .toArray (err, _tiles) ->
+                
                 # tile exists: it is downloaded, ignore.
-                completedTiles[id] = true if tile?                 
-                callback err
+                return callback err if err
+                completedTiles[_t._id] = true for _t in _tiles
+                callback()
+
         , (err) ->
-            # TODO: handle error
 
             # which tile is not downloaded
             for id in tiles
-                Tile.list.push id if not completedTiles[id]?
+                Tile.list.push id if not completedTiles[id]
 
             Tile.prepareTiles callback
 
@@ -166,19 +173,27 @@ Tile =
 
         logger.info "[Portals] Querying #{tiles.length} tile status..."
 
-        async.eachLimit tiles, Config.Database.MaxParallel, (id, callback) ->
-            # find this tile in the database
-            Database.db.collection('Tiles').findOne
-                _id:     id
+        tileIdsBucket = []
+        bucketSize = 100
+        for i in [0 ... tiles.length] by bucketSize
+            tileIdsBucket.push tiles[i ... i + bucketSize]
+
+        async.eachLimit tileIdsBucket, Config.Database.MaxParallel, (tileIds, callback) ->
+
+            Database.db.collection('Tiles').find
+                _id:
+                    $in: tileIds
                 portals: 0
-            , (err, tile) ->
-                # tile exists: it is downloaded, ignore.
-                completedTiles[id] = true if tile?                 
-                callback err
+            .toArray (err, _tiles) ->
+
+                return callback err if err
+                completedTiles[_t._id] = true for _t in _tiles
+                callback()
+
         , (err) ->
 
             for id in tiles
-                Tile.list.push id if not completedTiles[id]?
+                Tile.list.push id if not completedTiles[id]
 
             Tile.prepareTiles callback
 
