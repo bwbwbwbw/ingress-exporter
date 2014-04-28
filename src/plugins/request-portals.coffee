@@ -143,7 +143,7 @@ Tile =
         for i in [0 ... tiles.length] by bucketSize
             tileIdsBucket.push tiles[i ... i + bucketSize]
 
-        async.eachLimit tiles, Config.Database.MaxParallel, (tileIds, callback) ->
+        async.eachLimit tileIdsBucket, Config.Database.MaxParallel, (tileIds, callback) ->
             # find this tile in the database
             Database.db.collection('Tiles').find
                 _id:
