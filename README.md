@@ -106,6 +106,11 @@ Requesting portals (`--portals`):
 
 ```
 --new    -n          Start new requests (otherwise continue, optional)
+--fast               Start new requests based on existing tile data
+                     (overwrite --new, optional)
+                     App will only request tiles that containing portals.
+					 It can effectively improve speed when region is large,
+					 but lose some new approved protals.
 --detail false       Don't request portals details (faster, optional)
 ```
 

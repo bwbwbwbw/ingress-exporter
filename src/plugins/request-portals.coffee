@@ -26,7 +26,12 @@ module.exports =
 
 bootstrap = (callback) ->
 
-    if argv.new or argv.n
+    if argv.fast
+        async.series [
+            Tile.prepareFast
+            Tile.start
+        ], callback
+    else if argv.new or argv.n
         async.series [
             Tile.prepareNew
             Tile.start
@@ -147,6 +152,31 @@ Tile =
             # TODO: handle error
 
             # which tile is not downloaded
+            for id in tiles
+                Tile.list.push id if not completedTiles[id]?
+
+            Tile.prepareTiles callback
+
+    prepareFast: (callback) ->
+
+        # get all tiles that has portals
+
+        tiles = Tile.calculateTileKeys()
+        completedTiles = {}
+
+        logger.info "[Portals] Querying #{tiles.length} tile status..."
+
+        async.eachLimit tiles, Config.Database.MaxParallel, (id, callback) ->
+            # find this tile in the database
+            Database.db.collection('Tiles').findOne
+                _id:     id
+                portals: 0
+            , (err, tile) ->
+                # tile exists: it is downloaded, ignore.
+                completedTiles[id] = true if tile?                 
+                callback err
+        , (err) ->
+
             for id in tiles
                 Tile.list.push id if not completedTiles[id]?
 
