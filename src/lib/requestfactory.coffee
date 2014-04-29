@@ -56,8 +56,9 @@ class RequestFactory
 
     constructor: ->
 
-        @max        = 0
-        @done       = 0
+        @max = 0
+        @done = 0
+        @ignoreMungeError = false
         
         @queue = async.queue (task, callback) =>
 
@@ -78,6 +79,11 @@ class RequestFactory
 
                     if not error
                         if body.error?
+                            if body.error is 'missing version' and not @ignoreMungeError
+                                logger.error '[Request] Failed to request using current munge data.'
+                                process.exit 0
+                                return
+                            
                             error = new Error(body.error)
                         else
                             error = @processResponse error, response, body

@@ -1,6 +1,7 @@
 async = require 'async'
 requestFactory = require './requestfactory.js'
 request = requestFactory()
+request.ignoreMungeError = true
 
 Munges = GLOBAL.Munges =
     Data:      null
