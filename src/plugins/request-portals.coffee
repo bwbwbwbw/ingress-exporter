@@ -280,11 +280,8 @@ processSuccessTileResponse = (response, tiles, callback) ->
 
                     async.each t.tile.gameEntities, (entity, callback) ->
 
-                        if t.tile.deletedGameEntityGuids.indexOf(entity[0]) is -1
-                            Entity.add entity[0], entity[1], entity[2], (type) ->
-                                Tile.data[id].portals++ if type is 'portal'
-                                callback()
-                        else
+                        Entity.add entity[0], entity[1], entity[2], (type) ->
+                            Tile.data[id].portals++ if type is 'portal'
                             callback()
 
                     , (err) ->
