@@ -23,7 +23,13 @@ See `config.cson.default` for details.
 You need to copy and rename to `config.cson` first before running.
 Remember to execute `grunt` after you modifying `config.cson` or updating repo.
 
-How to generate polygon data via IITC drawtool:
+#### How to generate polygon data via IITC drawtool
+
+(1) Install [IITC](http://iitc.jonatkins.com/?page=desktop)
+(2) Install Draw Tools plugin of IITC
+(3) Draw a polygon on the map (your desired requesting region)
+(4) Open Developer Tools -> Terminal
+(5) Paste the code below & press ENTER
 
 ```javascript
 window.plugin.drawTools.drawnItems.eachLayer(function(layer) {
@@ -34,9 +40,13 @@ window.plugin.drawTools.drawnItems.eachLayer(function(layer) {
     layer.getLatLngs().forEach(function(p) {
         latlngs.push([p.lat, p.lng]);
     });
-    console.log(JSON.stringify(latlngs));
+    console.log(JSON.stringify(latlngs) + '\n');
 });
 ```
+
+(6) Copy output to your `config.cson`.
+
+Notice: If there are more than 1 polygon on the map, the code will output data of all polygons. Please choose the one your desired.
 
 ### Example
 
