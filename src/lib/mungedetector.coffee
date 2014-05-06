@@ -127,10 +127,10 @@ tryMungeSet = (tryCallback) ->
         data:   {}
         onSuccess: (response, callback) ->
 
-            if not response?.result?.resistanceScore?
+            if not response? or response.length isnt 2
                 
                 callback()
-                tryCallback && tryCallback err
+                tryCallback && tryCallback new Error 'Failed to detect munge'
 
             else
 
