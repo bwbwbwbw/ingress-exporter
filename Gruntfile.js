@@ -15,7 +15,8 @@ module.exports = function (grunt)
                          cwd: 'src/',
                          src: ['**/*.js'],
                          dest: 'build/',
-                         ext: '.js'
+                         ext: '.js',
+                         extDot: 'last'
                     }]
                }
 
@@ -29,7 +30,8 @@ module.exports = function (grunt)
                          cwd: 'src/',
                          src: ['**/*.coffee'],
                          dest: 'build/',
-                         ext: '.js'
+                         ext: '.js',
+                         extDot: 'last'
                     }]
                }
           },
