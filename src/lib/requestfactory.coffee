@@ -197,11 +197,14 @@ class RequestFactory
                 process.exit 0
                 return false
 
+            if body.indexOf('NIA takedown in progress. Stand by.') > -1
+                return new Error 'Request rejected by Ingress Server.'
+
             if body.indexOf('but your computer or network may be sending automated queries') > -1
-                return new Error 'request rejected'
+                return new Error 'Request rejected. Please try changing IP.'
 
             if body.trim().length is 0
-                return new Error 'Empty server response'
+                return new Error 'Empty server response. Please try adding more accounts.'
 
             return new Error 'unknown server response'
 
