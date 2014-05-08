@@ -192,7 +192,7 @@ class RequestFactory
                 process.exit 0
                 return false
 
-            if body.indexOf('User not authenticated') > -1
+            if body.indexOf('Sign in') > -1 or body.indexOf('User not authenticated') > -1
                 logger.error '[Auth] Authentication failed. Please update the cookie.'
                 process.exit 0
                 return false
