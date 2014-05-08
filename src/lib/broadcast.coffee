@@ -90,7 +90,7 @@ class BroadcastTasker
                     # get last timestamp
                     Database.db.collection('chat_meta').findOne {_id: @options.instanceId}, (err, meta) ->
 
-                        tsMin = meta.timestamp + 1 if meta?.timestamp?
+                        tsMin = meta.timestamp - 2000 if meta?.timestamp?
                         tsMin = timestampMin if tsMin < timestampMin
 
                         callback()
