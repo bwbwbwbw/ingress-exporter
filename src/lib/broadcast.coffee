@@ -113,19 +113,20 @@ class BroadcastTasker
             TSmax = Math.min(timestampMax, TSmin + @options.splitTimespanMS)
             continue if TSmax is TSmin
 
-            preparedTasks.push
-                data:
-                    desiredNumItems: Config.Chat.FetchItemCount
-                    minLatE6:        Math.round(@options.region.SouthWest.Lat * 1e6)
-                    minLngE6:        Math.round(@options.region.SouthWest.Lng * 1e6)
-                    maxLatE6:        Math.round(@options.region.NorthEast.Lat * 1e6)
-                    maxLngE6:        Math.round(@options.region.NorthEast.Lng * 1e6)
-                    minTimestampMs:  TSmin - 1000
-                    maxTimestampMs:  TSmax + 1000
-                    chatTab:         @options.type
-                instance: @options.instanceId
-                status:   STATUS_PENDING
-                _id:      new ObjectID()
+            for i in [1..3]
+                preparedTasks.push
+                    data:
+                        desiredNumItems: Config.Chat.FetchItemCount
+                        minLatE6:        Math.round(@options.region.SouthWest.Lat * 1e6)
+                        minLngE6:        Math.round(@options.region.SouthWest.Lng * 1e6)
+                        maxLatE6:        Math.round(@options.region.NorthEast.Lat * 1e6)
+                        maxLngE6:        Math.round(@options.region.NorthEast.Lng * 1e6)
+                        minTimestampMs:  TSmin - 2000
+                        maxTimestampMs:  TSmax + 2000
+                        chatTab:         @options.type
+                    instance: @options.instanceId
+                    status:   STATUS_PENDING
+                    _id:      new ObjectID()
 
         async.eachLimit preparedTasks, Config.Database.MaxParallel, (task, callback) =>
 
@@ -187,10 +188,12 @@ class BroadcastTasker
 
     requestTask: (taskId) =>
 
+        d = JSON.parse(JSON.stringify(@tasks[taskId].data))
+
         @request.push
 
             action: 'getPaginatedPlexts'
-            data:   @tasks[taskId].data
+            data:   d
             onSuccess: (response, callback) =>
 
                 @emitter.emit 'receive', response.result
@@ -204,11 +207,11 @@ class BroadcastTasker
 
             afterResponse: (callback) =>
 
-                @emitter.emit 'response', @request.done, @request.max
+                @emitter.emit 'response', d, @request.done, @request.max
                 callback()
 
     parseChatResponse: (taskId, response, parseCompleteCallback) =>
-
+        
         if response.length < Config.Chat.FetchItemCount
 
             # no more messages: remove task
@@ -226,8 +229,8 @@ class BroadcastTasker
         else
 
             # records are in descend order.
+            maxTimestamp = parseInt(response[response.length - 1][1]) + 2000
 
-            maxTimestamp = parseInt(response[response.length - 1][1]) - 1
             @tasks[taskId].data.maxTimestampMs = maxTimestamp
             @tasks[taskId].status = STATUS_NOTCOMPLETE
 

@@ -1,3 +1,4 @@
+moment = require 'moment'
 async = require 'async'
 scutil = require '../lib/scutil.js'
 broadcastTasker = require '../lib/broadcast.js'
@@ -64,11 +65,17 @@ bootstrap = (callback) ->
                 messageReceived++
                 insertMessage rec[0], rec[1], rec[2] 
 
-        broadcast.on 'response', (done, max) ->
-            logger.info "[Faction] " +
-                    Math.round(taskCompleted / taskCount * 100) + 
-                    "% [#{taskCompleted}/#{taskCount}] [#{done}/#{max}]" +
-                    "\tReceived #{messageReceived} (all #{messageCount})"
+        broadcast.on 'response', (data, done, max) ->
+            logger.info '[Faction] [%s - %s] %d% [%d/%d] [%d/%d]\tReceived %d (all %d)',
+                moment(data.minTimestampMs).format('MMM Do, HH:mm:ss'),
+                moment(data.maxTimestampMs).format('MMM Do, HH:mm:ss'),
+                Math.round(taskCompleted / taskCount * 100),
+                taskCompleted,
+                taskCount,
+                done,
+                max,
+                messageReceived,
+                messageCount
 
         broadcast.on 'taskcreated', (preparedLength, allLength) ->
             taskCount = allLength
@@ -84,7 +91,7 @@ bootstrap = (callback) ->
         tsMax = Date.now()
 
         if argv.tracedays
-            tsMin = tsMax - parseInt(argv.tracedays) * 24 * 60 * 60 * 1000
+            tsMin = tsMax - parseFloat(argv.tracedays) * 24 * 60 * 60 * 1000
         else
             tsMin = tsMax - Config.Chat.TraceTimespanMS
         
