@@ -123,7 +123,7 @@ class BroadcastTasker
                         maxLngE6:        Math.round(@options.region.NorthEast.Lng * 1e6)
                         minTimestampMs:  TSmin - 2000
                         maxTimestampMs:  TSmax + 2000
-                        chatTab:         @options.type
+                        chatTabGet:      @options.type
                     instance: @options.instanceId
                     status:   STATUS_PENDING
                     _id:      new ObjectID()
