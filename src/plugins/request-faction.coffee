@@ -88,7 +88,7 @@ bootstrap = (callback) ->
         broadcast.on 'beforestart', ->
             logger.info "[Faction] Begin requesting..."
 
-        tsMax = Date.now() + 30 * 60 * 1000
+        tsMax = Date.now()
 
         if argv.tracedays
             tsMin = tsMax - parseFloat(argv.tracedays) * 24 * 60 * 60 * 1000
