@@ -76,25 +76,29 @@ Entity = GLOBAL.Entity =
                 guid: guid
             beforeRequest: (callback) ->
 
-                    t = Date.now()
-                    callback()
+                t = Date.now()
+                callback()
 
             onSuccess: (response, callback) ->
 
                 if response.captured?.capturedTime?
                     response.captured.capturedTime = parseInt response.captured.capturedTime
 
-                Database.db.collection('Portals').update
-                    _id: guid
+                Database.db.collection('Portals').findAndModify
+                    _id: guid   #query
                 ,
-                    $set: response
-                , (err) ->
+                    _id: 1      #sort
+                ,
+                    $set: response  #update
+                ,
+                    new: true   # options
+                , (err, data) ->
 
                     if err
                         logger.error '[Details] Failed to update portal detail (guid=%s) in database: %s', guid, err.message
 
                     # resolve agent information
-                    Agent.resolveFromPortalDetail response, callback
+                    Agent.resolveFromPortalDetail data, callback
 
             onError: (err, callback) ->
 

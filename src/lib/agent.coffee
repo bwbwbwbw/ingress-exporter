@@ -26,9 +26,9 @@ Agent = GLOBAL.Agent =
 
     resolveFromPortalDetail: (portal, callback) ->
 
-        return callback() if not portal.controllingTeam?
+        return callback() if not portal.team?
 
-        agentTeam = Agent.strToTeam portal.controllingTeam.team
+        agentTeam = Agent.strToTeam portal.team
 
         async.each portal.resonatorArray.resonators, (resonator, callback) ->
 
@@ -95,8 +95,8 @@ Agent = GLOBAL.Agent =
             resonatorArray:
                 $exists: true
         ,
-            resonatorArray:  true
-            controllingTeam: true
+            resonatorArray: true
+            team: true
         ).toArray (err, portals) ->
 
             if err
