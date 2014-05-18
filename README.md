@@ -3,6 +3,10 @@ ingress-exporter
 
 Export all portals, links, fields and system broadcasts in a specific area.
 
+# Notice
+
+If this project doesn't work (for example, saying that failed to detect munge data), mostly it is because NIA updated their Intel website and broke down this project. Please open an issue and let me know.
+
 # Requirement
 
 Node.js, MongoDB
