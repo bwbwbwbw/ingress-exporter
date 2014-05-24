@@ -115,7 +115,12 @@ class BroadcastTasker
             TSmax = Math.min(timestampMax, TSmin + @options.splitTimespanMS)
             continue if TSmax is TSmin
 
-            for i in [1..3]
+            if argv.safe
+                REPEAT_TIMES = 3
+            else
+                REPEAT_TIMES = 1
+
+            for i in [1 .. REPEAT_TIMES]
                 preparedTasks.push
                     data:
                         minLatE6:        Math.round(@options.region.SouthWest.Lat * 1e6)
