@@ -9,6 +9,8 @@ STATUS_ERROR       = 1
 STATUS_NOTCOMPLETE = 2
 STATUS_COMPLETE    = 3
 
+FETCH_ITEM_COUNT   = 50
+
 class BroadcastTasker
 
     ###
@@ -116,7 +118,6 @@ class BroadcastTasker
             for i in [1..3]
                 preparedTasks.push
                     data:
-                        desiredNumItems: Config.Chat.FetchItemCount
                         minLatE6:        Math.round(@options.region.SouthWest.Lat * 1e6)
                         minLngE6:        Math.round(@options.region.SouthWest.Lng * 1e6)
                         maxLatE6:        Math.round(@options.region.NorthEast.Lat * 1e6)
@@ -196,8 +197,8 @@ class BroadcastTasker
             data:   d
             onSuccess: (response, callback) =>
 
-                @emitter.emit 'receive', response.result
-                @parseChatResponse taskId, response.result, callback
+                @emitter.emit 'receive', response.success
+                @parseChatResponse taskId, response.success, callback
 
             onError: (err, callback) =>
 
@@ -212,7 +213,7 @@ class BroadcastTasker
 
     parseChatResponse: (taskId, response, parseCompleteCallback) =>
         
-        if response.length < Config.Chat.FetchItemCount
+        if response.length < FETCH_ITEM_COUNT
 
             # no more messages: remove task
             delete @tasks[taskId]
