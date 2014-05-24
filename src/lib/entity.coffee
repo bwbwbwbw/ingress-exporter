@@ -81,8 +81,8 @@ Entity = GLOBAL.Entity =
 
             onSuccess: (response, callback) ->
 
-                if response.captured?.capturedTime?
-                    response.captured.capturedTime = parseInt response.captured.capturedTime
+                if response.capturedTime?
+                    response.capturedTime = parseInt response.capturedTime
 
                 Database.db.collection('Portals').findAndModify
                     _id: guid   #query
@@ -121,7 +121,7 @@ Entity = GLOBAL.Entity =
         Database.db.collection('Portals').find(
             team:
                 $ne: 'NEUTRAL'
-            resonatorArray:
+            resonators:
                 $exists: false
         ,
             _id: true

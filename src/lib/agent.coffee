@@ -30,11 +30,11 @@ Agent = GLOBAL.Agent =
 
         agentTeam = Agent.strToTeam portal.team
 
-        async.each portal.resonatorArray.resonators, (resonator, callback) ->
+        async.each portal.resonators, (resonator, callback) ->
 
             if resonator isnt null
                 
-                Agent.resolved resonator.ownerGuid,
+                Agent.resolved resonator.owner,
                     level: resonator.level
                     team:  agentTeam
                 , callback
@@ -92,10 +92,10 @@ Agent = GLOBAL.Agent =
         Database.db.collection('Portals').find(
             team:
                 $ne: 'NEUTRAL'
-            resonatorArray:
+            resonators:
                 $exists: true
         ,
-            resonatorArray: true
+            resonators: true
             team: true
         ).toArray (err, portals) ->
 
