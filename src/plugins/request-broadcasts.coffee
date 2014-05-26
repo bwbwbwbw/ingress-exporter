@@ -50,7 +50,7 @@ bootstrap = (callback) ->
         broadcast = broadcastTasker
             instanceId:         'req-broadcast-all'
             type:               'all'
-            splitTimespanMS:    Config.Chat.SplitTimespanMS
+            splitTimespanMS:    Config.Chat.SplitTimespanMS.Broadcast
             region:             region
 
         broadcast.on 'error', (err) ->

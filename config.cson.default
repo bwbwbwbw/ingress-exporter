@@ -32,7 +32,9 @@ TileBucket:
 
 Chat:
 
-    SplitTimespanMS:        1*60*60*1000   # split tasks by 1hr
+    SplitTimespanMS:
+        Broadcast:            10*60*1000   # 10 min
+        Faction:            3*60*60*1000   # 3 hours
     TraceTimespanMS:    10*24*60*60*1000   # new task: trace 10 days
 
 PlayerLookup:

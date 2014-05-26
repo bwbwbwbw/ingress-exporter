@@ -51,7 +51,7 @@ bootstrap = (callback) ->
         broadcast = broadcastTasker
             instanceId:         'req-broadcast-faction'
             type:               'faction'
-            splitTimespanMS:    Config.Chat.SplitTimespanMS
+            splitTimespanMS:    Config.Chat.SplitTimespanMS.Faction
             region:             region
 
         broadcast.on 'error', (err) ->
