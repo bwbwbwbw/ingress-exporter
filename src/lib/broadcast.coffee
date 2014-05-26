@@ -127,8 +127,8 @@ class BroadcastTasker
                         minLngE6:        Math.round(@options.region.SouthWest.Lng * 1e6)
                         maxLatE6:        Math.round(@options.region.NorthEast.Lat * 1e6)
                         maxLngE6:        Math.round(@options.region.NorthEast.Lng * 1e6)
-                        minTimestampMs:  TSmin - 2000
-                        maxTimestampMs:  TSmax + 2000
+                        minTimestampMs:  TSmin - 10
+                        maxTimestampMs:  TSmax + 10
                         chatTabGet:      @options.type
                     instance: @options.instanceId
                     status:   STATUS_PENDING
@@ -235,7 +235,7 @@ class BroadcastTasker
         else
 
             # records are in descend order.
-            maxTimestamp = parseInt(response[response.length - 1][1]) + 2000
+            maxTimestamp = parseInt(response[response.length - 1][1]) + 10
 
             @tasks[taskId].data.maxTimestampMs = maxTimestamp
             @tasks[taskId].status = STATUS_NOTCOMPLETE
