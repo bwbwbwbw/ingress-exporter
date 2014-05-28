@@ -235,7 +235,8 @@ class BroadcastTasker
         else
 
             # records are in descend order.
-            maxTimestamp = parseInt(response[response.length - 1][1]) + 10
+            # set the maxtimestamp equal to mintimestamp of the response
+            maxTimestamp = parseInt(response[response.length - 1][1]) - 1
 
             @tasks[taskId].data.maxTimestampMs = maxTimestamp
             @tasks[taskId].status = STATUS_NOTCOMPLETE
