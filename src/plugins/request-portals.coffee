@@ -48,7 +48,7 @@ tileBucket = async.cargo (tiles, callback) ->
     Tile.data[id].status = STATUS_PENDING for id in tiles
 
     data = 
-        quadKeys: tiles
+        tileKeys: tiles
 
     # reset status in database
     async.eachLimit tiles, Config.Database.MaxParallel, (id, callback) ->
@@ -70,7 +70,7 @@ tileBucket = async.cargo (tiles, callback) ->
 
         request.push
 
-            action: 'getThinnedEntities'
+            action: 'getEntities'
             data:   data
             beforeRequest: (callback) ->
 

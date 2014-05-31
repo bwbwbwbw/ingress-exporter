@@ -24,7 +24,7 @@ var Utils = GLOBAL.Utils = {
         }
 
     },
-
+/*
     extractNormalizeFunction: function(nemesis) {
 
         var funcOriginal = nemesis.dashboard.requests.normalizeParamCount.toString();
@@ -40,20 +40,26 @@ var Utils = GLOBAL.Utils = {
 
         return new Function('obj', 'return (' + str + ')(obj)');
     },
-
+*/
     extractMungeFromStock: function(nemesis) {
 
-        var munges = Utils.extractMungeFromStockIITC(nemesis);
+        /*var munges = Utils.extractMungeFromStockIITC(nemesis);
         var new_munges = {};
 
         for (var key in munges) {
             new_munges[key.replace(/\./g, '_')] = munges[key];
         }
 
-        return new_munges;
+        return new_munges;*/
+
+        var munges = {
+            version: nemesis.dashboard.config.CURRENT_VERSION
+        };
+
+        return munges;
 
     },
-
+/*
     extractMungeFromStockIITC: function(nemesis) {
 
         var foundMunges = {};
@@ -149,7 +155,7 @@ var Utils = GLOBAL.Utils = {
         return foundMunges;
 
     },
-
+*/
     getMapZoomTileParameters: function(zoom) {
         // these arrays/constants are based on those in the stock intel site. it's essential we keep them in sync with their code
         // (it may be worth reading the values from their code rather than using our own copies? it's a case of either

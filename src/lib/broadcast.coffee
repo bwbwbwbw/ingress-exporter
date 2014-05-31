@@ -129,7 +129,7 @@ class BroadcastTasker
                         maxLngE6:        Math.round(@options.region.NorthEast.Lng * 1e6)
                         minTimestampMs:  TSmin - 10
                         maxTimestampMs:  TSmax + 10
-                        chatTabGet:      @options.type
+                        tab:             @options.type
                     instance: @options.instanceId
                     status:   STATUS_PENDING
                     _id:      new ObjectID()
@@ -198,7 +198,7 @@ class BroadcastTasker
 
         @request.push
 
-            action: 'getPaginatedPlexts'
+            action: 'getPlexts'
             data:   d
             onSuccess: (response, callback) =>
 

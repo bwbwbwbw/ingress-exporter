@@ -104,20 +104,23 @@ class RequestFactory
 
     generate: (options) =>
 
-        activeMunge = Munges.Data[Munges.ActiveSet]
-        normalizeFunc = Munges.NormalizeParamCount.func
+        #activeMunge = Munges.Data[Munges.ActiveSet]
+        #normalizeFunc = Munges.NormalizeParamCount.func
 
-        methodName = 'dashboard_' + options.action
-        versionStr = 'version_parameter'
+        #methodName = 'dashboard_' + options.action
+        #versionStr = 'version_parameter'
 
-        methodName = activeMunge[methodName]
-        versionStr = activeMunge[versionStr]
+        #methodName = activeMunge[methodName]
+        #versionStr = activeMunge[versionStr]
 
-        post_data = Utils.requestDataMunge Utils.extend({method: methodName, version: versionStr}, options.data), activeMunge, normalizeFunc
+        #post_data = Utils.requestDataMunge Utils.extend({method: methodName, version: versionStr}, options.data), activeMunge, normalizeFunc
+
+        post_data = Utils.extend({v: Munges.Data[Munges.ActiveSet].version}, options.data)
 
         # return:
         return {
-            m:        methodName
+            #m:        methodName
+            m:        options.action
             d:        post_data
             before:   options.beforeRequest || (callback) -> callback()
             success:  options.onSuccess     || (body, callback) -> callback()
