@@ -42,7 +42,7 @@ for cookies, index in cookieRaw
         cookie = cookie.trim()
         continue if cookie.length is 0
 
-        jar.setCookie request.cookie(cookie), 'http://www.ingress.com' if cookie.length isnt 0
+        jar.setCookie request.cookie(cookie), 'https://www.ingress.com' if cookie.length isnt 0
 
         pair = cookie.split '='
         map[pair[0]] = unescape pair[1]
@@ -146,7 +146,7 @@ class RequestFactory
 
         delayedRequest.post
 
-            url:        'http://www.ingress.com' + url
+            url:        'https://www.ingress.com' + url
             body:       JSON.stringify data
             jar:        session.jar
             proxy:      null || argv.proxy
@@ -157,8 +157,8 @@ class RequestFactory
                 'Accept': 'application/json, text/javascript, */*; q=0.01'
                 'Accept-Encoding': 'gzip,deflate'
                 'Content-type': 'application/json; charset=utf-8'
-                'Origin': 'http://www.ingress.com'
-                'Referer': 'http://www.ingress.com/intel'
+                'Origin': 'https://www.ingress.com'
+                'Referer': 'https://www.ingress.com/intel'
                 'User-Agent': Config.Request.UserAgent
                 'X-CSRFToken': session.cookies.csrftoken
 
@@ -170,7 +170,7 @@ class RequestFactory
 
         delayedRequest.get
 
-            url:        'http://www.ingress.com' + url
+            url:        'https://www.ingress.com' + url
             jar:        session.jar
             proxy:      null || argv.proxy
             maxSockets: 50
@@ -180,8 +180,8 @@ class RequestFactory
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
                 'Accept-Encoding': 'gzip,deflate'
                 'Cache-Control': 'max-age=0'
-                'Origin': 'http://www.ingress.com'
-                'Referer': 'http://www.ingress.com/intel'
+                'Origin': 'https://www.ingress.com'
+                'Referer': 'https://www.ingress.com/intel'
                 'User-Agent': Config.Request.UserAgent
 
         , @_gzipDecode callback
