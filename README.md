@@ -98,7 +98,7 @@ node build/app.js --trace --player Vivian --detect false
 #### Search farms based on database and output to json file
 
 ```
-node build/app.js --farm --output farm.json
+node build/app.js --farm --output farm.json --detect false
 ```
 
 ### Options
@@ -147,6 +147,8 @@ Exporting portals (`--export`):
 --latlng -l          Include lat & lng
 --id     -i          Include guid
 --image  -I          Include image URI
+--time   -T          Include captured time (if available)
+--owner  -o          Include owner (if available)
 --output FILE        Output to the file instead of stdout (optional)
 ```
 
