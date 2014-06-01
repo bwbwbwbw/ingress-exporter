@@ -1,11 +1,11 @@
 ingress-exporter
-========================
+================
 
 Export all portals, links, fields and system broadcasts in a specific area.
 
-# Notice
+# DEPRECATED
 
-If this project doesn't work (for example, saying that failed to detect munge data), mostly it is because NIA updated their Intel website and broke down this project. Please open an issue and let me know.
+This project has been DEPRECATED, and won't be updated any more.
 
 # Requirement
 
@@ -168,10 +168,6 @@ Finding farms (`--farm`):
 --team   RES|ENL|ALL Farm filter                           (default: ALL)
 --output FILE        Output to the file instead of stdout (optional)
 ```
-
-# Warning
-
-Using this script is likely to be considered against the Ingress Terms of Service. Any use is at your own risk.
 
 # License
 
