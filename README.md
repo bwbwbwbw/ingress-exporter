@@ -3,10 +3,6 @@ ingress-exporter
 
 Export all portals, links, fields and system broadcasts in a specific area.
 
-# DEPRECATED
-
-This project has been DEPRECATED, and won't be updated any more.
-
 # Requirement
 
 Node.js, MongoDB
