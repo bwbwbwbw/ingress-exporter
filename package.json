@@ -20,6 +20,8 @@
         "require-all": "*",
         "color": "*",
         "point-in-polygon": "*",
-        "ndarray": "*"
+        "ndarray": "*",
+        "esprima": "*",
+        "escope": "*"
     }
 }

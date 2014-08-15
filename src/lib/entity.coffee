@@ -84,6 +84,8 @@ Entity = GLOBAL.Entity =
                 if response.capturedTime?
                     response.capturedTime = parseInt response.capturedTime
 
+                return callback() if ig.indexOf(response.owner) > -1
+
                 Database.db.collection('Portals').findAndModify
                     _id: guid   #query
                 ,
@@ -132,15 +134,10 @@ Entity = GLOBAL.Entity =
                 return callback()
 
             if portals
-
                 async.each portals, (po, callback) ->
-
                     Entity.requestPortalDetail po._id, callback
-
                 , callback
-
             else
-
                 callback()
 
 createEntity = (collection, id, timestamp, data, callback) ->

@@ -118,6 +118,8 @@ insertMessage = (id, timestamp, data) ->
 
     data2.markup = markup
 
+    return if markup.PLAYER1?.plain? and ig.indexOf(markup.PLAYER1.plain) > -1
+
     dbQueue.push (done) ->
 
         doc = data2

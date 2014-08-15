@@ -24,143 +24,100 @@ var Utils = GLOBAL.Utils = {
         }
 
     },
-/*
-    extractNormalizeFunction: function(nemesis) {
 
-        var funcOriginal = nemesis.dashboard.requests.normalizeParamCount.toString();
-        funcOriginal = funcOriginal.replace(/goog\.now/g, 'Date.now');
-        funcOriginal = funcOriginal.replace(/goog\.object\.getCount/g, 'Utils.getCount');
-        funcOriginal = funcOriginal.replace(/nemesis\.dashboard\.BoundsParams\.getBoundsParamsForWorld/g, 'Utils.getBoundsParamsForWorld');
+    extractIntelData: function(jsSource) {
+        // To stay the same with IITC, we don't extract essential data directly,
+        // instead, we build a virual environment, then call IITC functions.
+        // 
+        // Because of there are no `window` object in NodeJS, we need to expose
+        // those global variables in order to let IITC functions work without
+        // any modification.
+        var window = {};
+        var source = jsSource;
 
-        return funcOriginal;
+        // extract global variables
+        var globalVars = [];
 
-    },
+        var esprima = require('esprima');
+        var escope = require('escope');
 
-    createNormalizeFunction: function(str) {
+        var tree = esprima.parse(source);
+        globalScope = escope.analyze(tree).scopes[0];
+        globalScope.variables.forEach(function (v) {
+            globalVars.push(v.identifiers[0].name);
+        });
 
-        return new Function('obj', 'return (' + str + ')(obj)');
-    },
-*/
-    extractMungeFromStock: function(nemesis) {
+        // expose global variables
+        globalVars.forEach(function(name) {
+            source = source + ';window.' + name + ' = ' + name + ';';
+        });
 
-        /*var munges = Utils.extractMungeFromStockIITC(nemesis);
-        var new_munges = {};
+        // stimulate Google Map object
+        source = 'var google={maps:{OverlayView:function(){}}};' + source;
 
-        for (var key in munges) {
-            new_munges[key.replace(/\./g, '_')] = munges[key];
+        // execute JavaScript
+        eval(source);
+        Utils.extractFromStock(window);
+
+        if (window.niantic_params.CURRENT_VERSION == undefined) {
+            throw new Error('Failed to extract version');
         }
 
-        return new_munges;*/
-
-        var munges = {
-            version: nemesis.dashboard.config.CURRENT_VERSION
-        };
-
-        return munges;
-
+        return window.niantic_params;
     },
-/*
-    extractMungeFromStockIITC: function(nemesis) {
 
-        var foundMunges = {};
+    // from IITC code
+    extractFromStock: function(window) {
+      var niantic_params = window.niantic_params = {}
 
-        // these are easy - directly available in variables
-        // NOTE: the .toString() is there so missing variables throw an exception, rather than storing 'undefined'
-        foundMunges['dashboard.getArtifactInfo'] = nemesis.dashboard.requests.MethodName.GET_ARTIFACT_INFO.toString();
-        foundMunges['dashboard.getGameScore'] = nemesis.dashboard.requests.MethodName.GET_GAME_SCORE.toString();
-        foundMunges['dashboard.getPaginatedPlexts'] = nemesis.dashboard.requests.MethodName.GET_PAGINATED_PLEXTS.toString();
-        foundMunges['dashboard.getThinnedEntities'] = nemesis.dashboard.requests.MethodName.GET_THINNED_ENTITIES.toString();
-        foundMunges['dashboard.getPortalDetails'] = nemesis.dashboard.requests.MethodName.GET_PORTAL_DETAILS.toString();
-    //    foundMunges['dashboard.redeemReward'] = nemesis.dashboard.requests.MethodName.REDEEM_REWARD.toString();
-    //    foundMunges['dashboard.sendInviteEmail'] = nemesis.dashboard.requests.MethodName.SEND_INVITE_EMAIL.toString();
-        foundMunges['dashboard.sendPlext'] = nemesis.dashboard.requests.MethodName.SEND_PLEXT.toString();
+      //TODO: need to search through the stock intel minified functions/data structures for the required variables
+      // just as a *very* quick fix, test the theory with hard-coded variable names
 
-        // the rest are trickier - we need to parse the functions of the stock site. these break very often
-        // on site updates
 
-    //    // regular expression - to match either x.abcdef123456wxyz or x["123456abcdefwxyz"] format for property access
-    //    var mungeRegExpProp = '(?:\\.([a-z][a-z0-9]{15})|\\["([0-9][a-z0-9]{15})"\\])';
-    //    // and one to match members of object literal initialisation - {abcdef123456wxyz: or {"123456abcdefwxyz":
-    //    var mungeRegExpLit = '(?:([a-z][a-z0-9]{15})|"([0-9][a-z0-9]{15})"):';
+      // extract the former nemesis.dashboard.config.CURRENT_VERSION from the code
+      var reVersion = new RegExp('[a-z]=[a-z].getData\\(\\);[a-z].v="([a-f0-9]{40})";');
 
-        // some cases don't munge now?!?! odd!
-        var mungeRegExpProp = '(?:\\.([a-z][a-z0-9]{15}|[a-z][a-zA-Z0-9]*)|\\["([0-9][a-z0-9]{15})"\\])';
-        var mungeRegExpLit = '(?:((?:[a-z][a-z0-9]{15})|[a-z][a-zA-Z0-9]*)|"([0-9][a-z0-9]{15})"):';
 
-        // common parameters - method, version, version_parameter - currently found in the 
-        // nemesis.dashboard.network.XhrController.prototype.doSendRequest_ function
-        // look for something like
-        //  var e = a.getData();
-        //  e["3sld77nsm0tjmkvi"] = c;
-        //  e.xz7q6r3aja5ttvoo = "b121024077de2a0dc6b34119e4440785c9ea5e64";
-        var reg = new RegExp('getData\\(\\);.*\\n.*'+mungeRegExpProp+' =.*\n.*'+mungeRegExpProp+' *= *"([a-z0-9]{40})','m');
-        var result = reg.exec(nemesis.dashboard.network.XhrController.prototype.doSendRequest_.toString());
-        // there's two ways of matching the munge expression, so try both
-        foundMunges.method = result[1] || result[2];
-        foundMunges.version = result[3] || result[4];
-        foundMunges.version_parameter = result[5];
+      var minified = new RegExp('^[a-zA-Z][a-zA-Z0-9]$');
 
-        // GET_THINNED_ENTITIES parameters
-        var reg = new RegExp('GET_THINNED_ENTITIES, nemesis.dashboard.network.XhrController.Priority.[A-Z]+, {'
-                 +mungeRegExpLit+'[a-z]');
-        var result = reg.exec(nemesis.dashboard.network.DataFetcher.prototype.getGameEntities.toString());
-        foundMunges.quadKeys = result[1] || result[2];
+      for (var topLevel in window) {
+        if (minified.test(topLevel)) {
+          // a minified object - check for minified prototype entries
 
-        // GET_PAGINATED_PLEXTS
-        var reg = new RegExp('[a-z] = {'+mungeRegExpLit+'Math.round\\(1E6 \\* [a-z].bounds.sw.lat\\(\\)\\), '
-                            +mungeRegExpLit+'Math.round\\(1E6 \\* [a-z].bounds.sw.lng\\(\\)\\), '
-                            +mungeRegExpLit+'Math.round\\(1E6 \\* [a-z].bounds.ne.lat\\(\\)\\), '
-                            +mungeRegExpLit+'Math.round\\(1E6 \\* [a-z].bounds.ne.lng\\(\\)\\), '
-                            +mungeRegExpLit+'[a-z], '+mungeRegExpLit+'[a-z]};\n'
-                            +' *[a-z]'+mungeRegExpProp+' = [a-z];\n'
-                            +' *-1 < [a-z] && \\([a-z]'+mungeRegExpProp+' = !0\\);', 'm');
+          // the object has a prototype - iterate through the properties of that
+          if (window[topLevel] && window[topLevel].prototype) {
+            for (var secLevel in window[topLevel].prototype) {
+              if (minified.test(secLevel)) {
 
-        var result = reg.exec(nemesis.dashboard.network.PlextStore.prototype.getPlexts.toString());
+                // looks like we've found an object of the format "XX.prototype.YY"...
 
-    //    foundMunges.desiredNumItems = result[1] || result[2];
+                var item = window[topLevel].prototype[secLevel];
 
-        foundMunges.minLatE6 = result[1] || result[2];
-        foundMunges.minLngE6 = result[3] || result[4];
-        foundMunges.maxLatE6 = result[5] || result[6];
-        foundMunges.maxLngE6 = result[7] || result[8];
-        foundMunges.minTimestampMs = result[9] || result[10];
-        foundMunges.maxTimestampMs = result[11] || result[12];
-        foundMunges.chatTabGet = result[13] || result[14];  //guessed parameter name - only seen munged
-        foundMunges.ascendingTimestampOrder = result[15] || result[16];
+                if (item && typeof(item) == "function") {
+                  // a function - test it against the relevant regular expressions
+                  var funcStr = item.toString();
 
-        // SEND_PLEXT
-        var reg = new RegExp('SEND_PLEXT, nemesis.dashboard.network.XhrController.Priority.[A-Z]+, {'
-                 +mungeRegExpLit+'[a-z], '
-                 +mungeRegExpLit+'[a-z], '
-                 +mungeRegExpLit+'[a-z], '
-                 +mungeRegExpLit+'[a-z]}');
-        var result = reg.exec(nemesis.dashboard.network.PlextStore.prototype.sendPlext.toString());
+                  var match = reVersion.exec(funcStr);
+                  if (match) {
+                    //console.log('Found former CURRENT_VERSION in '+topLevel+'.prototype.'+secLevel);
+                    niantic_params.CURRENT_VERSION = match[1];
+                  }
 
-        foundMunges.messageSendPlext = result[1] || result[2];
-        foundMunges.latE6SendPlext = result[3] || result[4];
-        foundMunges.lngE6SendPlext = result[5] || result[6];
-        foundMunges.chatTabSendPlext = result[7] || result[8];
-    //    if (chatTab != foundMunges.chatTab) throw 'Error: inconsistent munge parsing for chatTab';
+                }
 
-        // GET_PORTAL_DETAILS
-        var reg = new RegExp('GET_PORTAL_DETAILS, nemesis.dashboard.network.XhrController.Priority.[A-Z]+, {'
-                            +mungeRegExpLit+'a}');
-        var result = reg.exec(nemesis.dashboard.network.DataFetcher.prototype.getPortalDetails.toString());
-        foundMunges.guid = result[1] || result[2];
+              }
+            }
 
-    //    // SEND_INVITE_EMAIL
-    //    var reg = new RegExp('SEND_INVITE_EMAIL, nemesis.dashboard.network.XhrController.Priority.[A-Z]+, {'+mungeRegExpLit+'b}');
-    //    foundMunges.inviteeEmailAddress = result[1] || result[2];
-
-        return foundMunges;
-
+          }
+        }
+      }
     },
-*/
+
     getMapZoomTileParameters: function(zoom) {
         // these arrays/constants are based on those in the stock intel site. it's essential we keep them in sync with their code
         // (it may be worth reading the values from their code rather than using our own copies? it's a case of either
         //  breaking if they rename their variables if we do, or breaking if they change the values if we don't)
-        var ZOOM_TO_TILES_PER_EDGE = [32, 32, 32, 32, 256, 256, 256, 1024, 1024, 1536, 4096, 4096, 6500, 6500, 6500];
+        var ZOOM_TO_TILES_PER_EDGE = [64, 64, 64, 64, 256, 256, 256, 1024, 1024, 1536, 4096, 4096, 6500, 6500, 6500];
         var MAX_TILES_PER_EDGE = 9000;
         var ZOOM_TO_LEVEL = [8, 8, 8, 8, 7, 7, 7, 6, 6, 5, 4, 4, 3, 2, 2, 1, 1];
     
@@ -219,47 +176,6 @@ var Utils = GLOBAL.Utils = {
 
     clampLatLngBounds: function(bounds) {
         return new L.LatLngBounds ( Utils.clampLatLng(bounds.getSouthWest()), Utils.clampLatLng(bounds.getNorthEast()) );
-    },
-
-    requestDataMunge: function(data, activeMunge, normalizeFunc) {
-
-        function munge(obj) {
-
-            if (Object.prototype.toString.call(obj) === '[object Array]') {
-                // an array - munge each element of it
-                var newobj = [];
-                for (var i in obj) {
-                    newobj[i] = munge(obj[i]);
-                }
-                return newobj;
-            } else if (typeof obj === 'object') {
-                // an object: munge each property name, and pass the value through the munge process
-                var newobj = Object();
-                for (var p in obj) {
-                    var m = activeMunge[p];
-                    if (m === undefined) {
-                        console.error(('Error: failed to find munge for object property ' + p).red);
-                        newobj[p] = obj[p];
-                    } else {
-                        // rename the property
-                        newobj[m] = munge(obj[p]);
-                    }
-                }
-                return newobj;
-            } else {
-                // neither an array or an object - so must be a simple value. return it unmodified
-                return obj;
-            }
-
-        };
-
-        var newdata = munge(data);
-        
-        try {
-            newdata = normalizeFunc(newdata);
-        } catch(err) {}
-        
-        return newdata;
     },
 
     //$.extend
