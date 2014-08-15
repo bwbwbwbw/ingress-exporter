@@ -15,6 +15,10 @@ npm install -g grunt-cli
 grunt
 ```
 
+# Upgrade Note (Aug 15, 2014)
+
+The latest ingress-exporter uses [esprima](https://github.com/ariya/esprima) to parse and generate AST for JavaScript script from ingress.com/intel, so you need to run `npm install` again if you are upgrading from older versions.
+
 # Usage
 
 ### Config
