@@ -19,6 +19,7 @@ bootstrap = (callback) ->
         res:        'RESISTANCE'
         enlightened:'ENLIGHTENED'
         enl:        'ENLIGHTENED'
+        neutral:    'NEUTRAL'
         all:        null
 
     # condition: more than 5 portals (>lv7) in 300m
@@ -28,9 +29,10 @@ bootstrap = (callback) ->
     argv.radius = parseFloat argv.radius
     argv.level  = parseInt   argv.level
     argv.nearby = parseInt   argv.nearby
-    argv.team   = teamMapper[argv.team.toLowercase()] if argv.team
+    argv.team   = teamMapper[argv.team.toLowerCase()] if argv.team
+    argv.level  = 0 if argv.team is 'NEUTRAL'
 
-    cursor = Database.db.collection('Portals').find().toArray (err, portals) ->
+    Database.db.collection('Portals').find().toArray (err, portals) ->
 
         logger.info '[FarmHunter] Optimizing (part 1)...' if argv.output
 
