@@ -1,30 +1,5 @@
 var Utils = GLOBAL.Utils = {
 
-    getCount: function(a) {
-        var b = 0;
-        for(var c in a) {
-            b++;
-        }
-        return b;
-    },
-
-    getBoundsParamsForWorld: function() {
-
-        return {
-            bounds: {
-                sw: {
-                    lat: function() {return -90;},
-                    lng: function() {return -180;}
-                },
-                ne: {
-                    lat: function() {return 90;},
-                    lng: function() {return 180;}
-                }
-            }
-        }
-
-    },
-
     extractIntelData: function(jsSource) {
         // To stay the same with IITC, we don't extract essential data directly,
         // instead, we build a virual environment, then call IITC functions.
