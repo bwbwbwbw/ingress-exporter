@@ -23,9 +23,9 @@ bootstrap = (callback) ->
         all:        null
 
     # condition: more than 5 portals (>lv7) in 300m
-    argv.radius = argv.radius || 500
-    argv.nearby = argv.nearby || 5
-    argv.level  = argv.level  || 7
+    argv.radius = 500 if not argv.radius?
+    argv.nearby = 5   if not argv.nerby?
+    argv.level  = 7   if not argv.level?
     argv.radius = parseFloat argv.radius
     argv.level  = parseInt   argv.level
     argv.nearby = parseInt   argv.nearby
