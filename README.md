@@ -3,6 +3,18 @@ ingress-exporter
 
 Export all portals, links, fields and system broadcasts in a specific area.
 
+# SEEKING FOR MAINTAINER
+
+I'm busy now since I'm an undergraduate student. Even I don't have much time to open Ingress every week :-(
+
+It would be fantastic if anyone could help maintain this project, especially in reverse engineering & bypassing the botguard mechanism ([#11](https://github.com/breeswish/ingress-exporter/issues/11)).
+
+Thanks!
+
+# KNOWN ISSUES
+
+The project is currently broken because of the [botguard](https://github.com/breeswish/ingress-exporter/issues/11).
+
 # Requirement
 
 Node.js, MongoDB
