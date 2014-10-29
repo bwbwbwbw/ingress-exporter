@@ -146,7 +146,7 @@ tryMungeSet = (tryCallback) ->
         data:   {}
         onSuccess: (response, callback) ->
 
-            if not response? or response.length isnt 2
+            if not response.result? or response.result.length isnt 2
                 
                 callback()
                 tryCallback && tryCallback new Error 'Failed to detect munge'
