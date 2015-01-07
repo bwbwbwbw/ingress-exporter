@@ -29,6 +29,7 @@ var Utils = GLOBAL.Utils = {
 
         // stimulate Google Map object
         source = 'var google={maps:{OverlayView:function(){}}};' + source;
+        source = 'var IS_TABLET=false;' + source;
 
         // execute JavaScript
         eval(source);
