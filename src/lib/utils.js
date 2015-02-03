@@ -44,15 +44,13 @@ var Utils = GLOBAL.Utils = {
 
     // from IITC code
     extractFromStock: function(window) {
-      var niantic_params = window.niantic_params = {}
-
-      //TODO: need to search through the stock intel minified functions/data structures for the required variables
-      // just as a *very* quick fix, test the theory with hard-coded variable names
-
+      var niantic_params = window.niantic_params = {};
 
       // extract the former nemesis.dashboard.config.CURRENT_VERSION from the code
       var reVersion = new RegExp('[a-z]=[a-z].getData\\(\\);[a-z].v="([a-f0-9]{40})";');
 
+      // we also extract all top-level arrays of strings, for botguard
+      var arrays = [];
 
       var minified = new RegExp('^[a-zA-Z$][a-zA-Z$0-9]$');
 
@@ -60,8 +58,9 @@ var Utils = GLOBAL.Utils = {
         if (minified.test(topLevel)) {
           // a minified object - check for minified prototype entries
 
-          // the object has a prototype - iterate through the properties of that
           if (window[topLevel] && window[topLevel].prototype) {
+
+            // the object has a prototype - iterate through the properties of that
             for (var secLevel in window[topLevel].prototype) {
               if (minified.test(secLevel)) {
 
@@ -75,7 +74,6 @@ var Utils = GLOBAL.Utils = {
 
                   var match = reVersion.exec(funcStr);
                   if (match) {
-                    //console.log('Found former CURRENT_VERSION in '+topLevel+'.prototype.'+secLevel);
                     niantic_params.CURRENT_VERSION = match[1];
                   }
 
@@ -84,7 +82,8 @@ var Utils = GLOBAL.Utils = {
               }
             }
 
-          }
+          } //end 'if .prototype'
+
         }
       }
     },
