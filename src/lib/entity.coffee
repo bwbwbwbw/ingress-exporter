@@ -213,9 +213,9 @@ remap = (data) ->
         title: data[8]
         ornaments: data[9]
     }
-    result.mods = remapMods(data[10]) if data[10]
-    result.resonators = remapResos(data[11]) if data[11]
-    result.owner = data[12] if data[12]
+    result.mods = remapMods(data[11]) if data[11]
+    result.resonators = remapResos(data[12]) if data[12]
+    result.owner = data[13] if data[13]
     return result
  
  
