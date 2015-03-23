@@ -202,8 +202,8 @@ class BroadcastTasker
             data:   d
             onSuccess: (response, callback) =>
 
-                @emitter.emit 'receive', response.success
-                @parseChatResponse taskId, response.success, callback
+                @emitter.emit 'receive', response.result
+                @parseChatResponse taskId, response.result, callback
 
             onError: (err, callback) =>
 
