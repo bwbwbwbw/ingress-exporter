@@ -141,7 +141,7 @@ class RequestFactory
             proxy:      null || argv.proxy
             maxSockets: 50
             encoding:   null
-            timeout:    20000
+            timeout:    90000
             headers:
                 'Accept': 'application/json, text/javascript, */*; q=0.01'
                 'Accept-Encoding': 'gzip,deflate'
@@ -164,7 +164,7 @@ class RequestFactory
             proxy:      null || argv.proxy
             maxSockets: 50
             encoding:   null
-            timeout:    20000
+            timeout:    90000
             headers:
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
                 'Accept-Encoding': 'gzip,deflate'
