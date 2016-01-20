@@ -52,6 +52,6 @@ AccountInfo = GLOBAL.AccountInfo =
                 return callback err
 
             logger.info '[AccountInfo] %s (%s)', player.nickname, player.team for player in accounts
-            logger.warn '[AccountInfo] %s', 'Please immediately press Ctrl+C if you are using an incorrect account.'.yellow.inverse
+            logger.warn '[AccountInfo] %s', 'Please immediately press Ctrl+C if you are using an incorrect account.'.yellow
 
             callback()

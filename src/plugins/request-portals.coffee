@@ -252,7 +252,7 @@ processSuccessTileResponse = (response, tiles, callback) ->
                 if t.tile.error is 'TIMEOUT'
 
                     Tile.data[t.id].status = STATUS_TIMEOUT
-                    timeoutTiles.push id
+                    timeoutTiles.push t.id
 
                 else
 
@@ -281,7 +281,7 @@ processSuccessTileResponse = (response, tiles, callback) ->
                     async.each t.tile.gameEntities, (entity, callback) ->
 
                         Entity.add entity[0], entity[1], entity[2], (type) ->
-                            Tile.data[id].portals++ if type is 'portal'
+                            Tile.data[t.id].portals++ if type is 'portal'
                             callback()
 
                     , (err) ->

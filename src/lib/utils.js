@@ -47,43 +47,78 @@ var Utils = GLOBAL.Utils = {
       var niantic_params = window.niantic_params = {};
 
       // extract the former nemesis.dashboard.config.CURRENT_VERSION from the code
-      var reVersion = new RegExp('[a-z]=[a-z].getData\\(\\);[a-z].v="([a-f0-9]{40})";');
+      var reVersion = new RegExp('"X-CSRFToken".*[a-z].v="([a-f0-9]{40})";');
 
-      // we also extract all top-level arrays of strings, for botguard
-      var arrays = [];
-
-      var minified = new RegExp('^[a-zA-Z$][a-zA-Z$0-9]$');
+      var minified = new RegExp('^[a-zA-Z$][a-zA-Z$0-9]?$');
 
       for (var topLevel in window) {
         if (minified.test(topLevel)) {
           // a minified object - check for minified prototype entries
 
-          if (window[topLevel] && window[topLevel].prototype) {
-
+          var topObject = window[topLevel];
+          if (topObject && topObject.prototype) {
             // the object has a prototype - iterate through the properties of that
-            for (var secLevel in window[topLevel].prototype) {
+            for (var secLevel in topObject.prototype) {
               if (minified.test(secLevel)) {
-
                 // looks like we've found an object of the format "XX.prototype.YY"...
-
-                var item = window[topLevel].prototype[secLevel];
+                var item = topObject.prototype[secLevel];
 
                 if (item && typeof(item) == "function") {
                   // a function - test it against the relevant regular expressions
                   var funcStr = item.toString();
-
                   var match = reVersion.exec(funcStr);
                   if (match) {
-                    niantic_params.CURRENT_VERSION = match[1];
+                  console.log('Found former CURRENT_VERSION in '+topLevel+'.prototype.'+secLevel);
+                  niantic_params.CURRENT_VERSION = match[1];
                   }
-
                 }
-
               }
             }
-
           } //end 'if .prototype'
 
+          if (topObject && Array.isArray && Array.isArray(topObject)) {
+            // find all non-zero length arrays containing just numbers
+            if (topObject.length>0) {
+              var justInts = true;
+              for (var i=0; i<topObject.length; i++) {
+                if (typeof(topObject[i]) !== 'number' || topObject[i] != parseInt(topObject[i])) {
+                  justInts = false;
+                  break;
+                }
+              }
+              if (justInts) {
+                if (topObject.length >= 12 && topObject.length <= 18) {
+                  if (topObject[0] == 8) {
+                    var decreasing = true;
+                    for (var i=1; i<topObject.length; i++) {
+                      if (topObject[i-1] < topObject[i]) {
+                        decreasing = false;
+                        break;
+                      }
+                    }
+                    if (decreasing) {
+                      console.log ('int array '+topLevel+' looks like ZOOM_TO_LEVEL: '+JSON.stringify(topObject));
+                      niantic_params.ZOOM_TO_LEVEL = topObject;
+                    }
+                  } // end if (topObject[0] == 8)
+                  if (topObject[topObject.length-1] >= 9000 && topObject[topObject.length-1] <= 64000) {
+                    var increasing = true;
+                    for (var i=1; i<topObject.length; i++) {
+                      if (topObject[i-1] > topObject[i]) {
+                        increasing = false;
+                        break;
+                      }
+                    }
+                    if (increasing) {
+                      console.log ('int array '+topLevel+' looks like TILES_PER_EDGE: '+JSON.stringify(topObject));
+                      niantic_params.TILES_PER_EDGE = topObject;
+                    }
+                  } //end if (topObject[topObject.length-1] == 9000) {
+
+                }
+              }
+            }
+          }
         }
       }
     },

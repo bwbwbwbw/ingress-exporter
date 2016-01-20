@@ -1,27 +1,29 @@
 {
-    "name": "ingress-exporter",
-    "version": "0.0.1",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/breeswish/ingress-exporter.git"
-    },
-    "dependencies": {
-        "grunt": "*",
-        "grunt-contrib-coffee": "*",
-        "grunt-contrib-watch": "*",
-        "grunt-contrib-copy": "*",
-        "grunt-cson": "*",
-        "request": "*",
-        "async": "*",
-        "mongoskin": "*",
-        "moment": "*",
-        "winston": "*",
-        "optimist": "*",
-        "require-all": "*",
-        "color": "*",
-        "point-in-polygon": "*",
-        "ndarray": "*",
-        "esprima": "*",
-        "escope": "*"
-    }
+  "name": "ingress-exporter",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/breeswish/ingress-exporter.git"
+  },
+  "dependencies": {
+    "async": "*",
+    "color": "*",
+    "escope": "*",
+    "esprima": "*",
+    "grunt": "*",
+    "grunt-contrib-coffee": "*",
+    "grunt-contrib-copy": "*",
+    "grunt-contrib-watch": "*",
+    "grunt-cson": "*",
+    "kerberos": "0.0.17",
+    "moment": "*",
+    "mongodb": "*",
+    "mongoskin": "*",
+    "ndarray": "*",
+    "optimist": "*",
+    "point-in-polygon": "*",
+    "request": "*",
+    "require-all": "*",
+    "winston": "*"
+  }
 }
